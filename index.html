@@ -7,9 +7,10 @@
   <meta name="description" content="어르신이 스피커에 말을 걸면, 필요한 도움과 나누고 싶은 소식을 가족에게 이어주는 AI 말동무 마실의 체험형 시연입니다.">
   <title>마실 | 어르신과 가족을 이어주는 AI 말동무</title>
   <link rel="icon" href="./masil-mark.webp" type="image/webp">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?rev=4">
   <script src="./voices.js?rev=3" defer></script>
   <script src="./app.js?rev=2" defer></script>
+  <script src="./roadmap.js?rev=4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#experience">시연으로 바로 가기</a>
@@ -114,42 +115,116 @@
     </section>
 
     <section class="roadmap border-top" id="roadmap" aria-labelledby="roadmap-title">
-      <div class="wrap roadmap-grid">
-        <div class="roadmap-intro">
-          <h2 id="roadmap-title">마실을 집에<br>놓을 수 있다면</h2>
-          <p>태블릿 한 대로 시작하고, 익숙한 집안 기기에서 쓸 수 있도록 넓혀가려고 해요.</p>
-        </div>
-        <div class="roadmap-topics">
-          <details open>
-            <summary>태블릿이나 스피커로 시작</summary>
-            <div class="details-content">
-              <p>태블릿에는 설치형 웹앱(PWA)을 열어 큰 글씨와 말하기 버튼을 제공하고, 가족은 휴대폰에서 소식과 주문을 확인해요. 일반 스피커는 Raspberry Pi와 USB 마이크에 연결해 대화 기기로 쓸 수 있어요.</p>
-              <p>태블릿용 화면과 Pi 연결 프로그램은 오픈소스로 공개하는 방향을 검토해요. 가족 계정과 주문을 처리하는 기본 서버는 직접 운영해요.</p>
-            </div>
-          </details>
-          <details>
-            <summary>공유기 설정 없이 연결</summary>
-            <div class="details-content">
-              <p>태블릿과 Pi가 운영 서버에 HTTPS·WebSocket으로 먼저 접속해요. 서버가 등록된 가족 앱으로 소식과 주문 상태를 전달하므로 집 공유기에 포트포워딩을 설정할 필요가 없어요. 집에 서버를 직접 두고 운영한다면, 인증된 리버스 터널로 마실 서비스에 연결해요.</p>
-              <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/">리버스 터널 연결 방식</a>
-            </div>
-          </details>
-          <details>
-            <summary>사투리와 실시간 음성 대화</summary>
-            <div class="details-content">
-              <p><strong>OpenAI API</strong>로 응답 속도와 대화 중 말을 끊고 다시 듣는 동작을 확인해요. 듣기와 말하기를 동시에 처리하는 GPT-Live-1도 비교해요.</p>
-              <p><strong>단계별 처리</strong>에서는 AI Hub의 강원도·경상도 중·노년층 방언으로 인식률을 비교해요. 필요한 경우 Whisper Large-v3를 추가 학습시키고, 음성 인식 → AI 판단 → 음성 응답을 연결해요. 수량과 거절 표현은 따로 평가해요.</p>
-              <p><strong>자체 음성 모델</strong>은 LFM3-Audio-2B의 오디오 구조를 참고해요. 이 모델이 공식 지원하는 음성 대화는 영어예요. 한국어로 말하면서 동시에 듣고, 어르신이 말을 보태면 자연스럽게 다시 듣는 것을 연구 목표로 둬요.</p>
-              <p class="references"><a href="https://developers.openai.com/api/docs/guides/voice-agents">OpenAI 음성 API</a> · <a href="https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&amp;dataSetSn=71517&amp;topMenu=100">AI Hub 방언 데이터</a> · <a href="https://huggingface.co/LiquidAI/LFM3-Audio-2B">Liquid AI 모델 카드</a></p>
-            </div>
-          </details>
-          <details>
-            <summary>실제 주문과 집 안 센서</summary>
-            <div class="details-content">
-              <p>실제 주문에서는 서버가 품목, 총액, 배송지와 승인 여부를 확인하고 중복 주문을 막아요. 가족 목소리는 어르신과 녹음한 가족이 동의한 경우에 쓰고, 동의를 철회하면 기본 음성으로 돌려요.</p>
-              <p>이후 피지컬 AI로 넓혀 충격음이나 누수 센서 신호를 받으면 먼저 어르신에게 상황을 물어요. 응답이 없거나 도움을 요청하면 가족에게 알리는 흐름을 시험해요.</p>
-            </div>
-          </details>
+      <div class="wrap">
+        <header class="roadmap-intro">
+          <div>
+            <p class="eyebrow">앞으로의 개발 계획</p>
+            <h2 id="roadmap-title">마실을 집에<br>놓을 수 있다면</h2>
+          </div>
+          <p class="roadmap-lead">할머니 댁 식탁에 태블릿 한 대를 놓는 데서 시작해요. 말을 걸면 가족에게 소식이 닿고, 나중에는 집 안의 신호도 함께 살필 수 있게 만들고 싶어요.</p>
+        </header>
+        <nav class="roadmap-nav" aria-label="개발 단계 바로가기">
+          <a href="#roadmap-device">기기 준비</a>
+          <a href="#roadmap-family">가족 연결</a>
+          <a href="#roadmap-voice">음성 대화</a>
+          <a href="#roadmap-order">주문 연동</a>
+          <a href="#roadmap-sensor">센서 확장</a>
+        </nav>
+        <div class="roadmap-layout">
+          <ol class="roadmap-list" role="list">
+            <li class="roadmap-step" id="roadmap-device" tabindex="-1">
+              <span class="step-number" aria-hidden="true">01</span>
+              <div class="step-content">
+                <h3>집에 있는 기기로 시작해요</h3>
+                <p>태블릿에 마실 웹앱을 설치해 식탁에 놓아요. 스피커를 쓰고 싶다면 라즈베리파이에 USB 마이크와 스피커를 연결해요.</p>
+                <p>태블릿용 설치형 웹앱(PWA)과 라즈베리파이 연결 프로그램은 오픈소스로 공개하는 방안을 검토해요.</p>
+                <div class="roadmap-scene" aria-hidden="true">
+                  <div class="plan-screen">
+                    <span class="plan-label"><i></i>어르신 태블릿</span>
+                    <div class="plan-tablet"><img src="./masil-logo.webp" alt="" width="330" height="144"><span>마실과 이야기하기</span></div>
+                  </div>
+                  <div class="plan-note"><span class="note-label">스피커로 쓰려면</span><strong>라즈베리파이 + USB 마이크</strong><span>집에 있는 스피커를 연결해요.</span></div>
+                </div>
+              </div>
+            </li>
+            <li class="roadmap-step" id="roadmap-family" tabindex="-1">
+              <span class="step-number" aria-hidden="true">02</span>
+              <div class="step-content">
+                <h3>가족의 휴대폰과 연결해요</h3>
+                <p>어르신 댁의 기기가 마실 운영 서버에 먼저 접속해요. 서버는 어르신이 전하고 싶은 소식과 주문 상태를 연결된 가족 앱에 보내요. 가족이 집 공유기를 따로 설정할 필요가 없어요.</p>
+                <details class="step-extra"><summary>서버는 어떻게 연결할까요?</summary>
+                  <p>마실이 직접 운영하는 서버에 기기가 HTTPS·WebSocket으로 연결돼요. 서버를 집에서 직접 운영할 때는 인증된 리버스 터널로 마실 서비스에 연결하는 방식을 검토해요.</p>
+                  <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/">리버스 터널 연결 방식</a>
+                </details>
+                <div class="roadmap-scene" aria-hidden="true">
+                  <div class="plan-screen">
+                    <span class="plan-label"><i></i>소식이 전해지는 길</span>
+                    <div class="plan-network"><span>집 기기</span><b></b><span>운영 서버</span><b></b><span>가족 앱</span></div>
+                  </div>
+                  <div class="plan-note"><span class="note-label">가족 화면</span><strong>할머니 댁 태블릿</strong><span>가족 앱에 연결됐어요.</span></div>
+                </div>
+              </div>
+            </li>
+            <li class="roadmap-step" id="roadmap-voice" tabindex="-1">
+              <span class="step-number" aria-hidden="true">03</span>
+              <div class="step-content">
+                <h3>평소 말투로 부탁해요</h3>
+                <p>“그거 하나 시키도”라고 말씀하시면 마실이 어떤 물건을 몇 개 원하시는지 확인해요. 수량을 고치거나 “아니다”라고 말을 보태셔도 다시 듣도록 시험해요.</p>
+                <details class="step-extra"><summary>음성 AI 개발 순서</summary>
+                  <ol class="voice-plan">
+                    <li><b>API로 먼저 시험해요.</b> OpenAI Realtime API로 응답 속도와 말 끊기를 확인하고, GPT-Live-1로 말하면서 듣는 대화도 비교해요.</li>
+                    <li><b>사투리 인식을 다듬어요.</b> AI Hub의 강원도·경상도 50대 이상 방언으로 수량과 거절 표현을 평가해요. 필요하면 Whisper Large-v3를 추가 학습해 음성 인식, 의도 판단, 음성 응답을 연결해요.</li>
+                    <li><b>한국어 양방향 모델을 연구해요.</b> LFM3-Audio-2B의 오디오 구조를 참고해요. 공식 음성 대화 지원 언어는 영어여서 한국어 동시 청취·응답은 별도로 시험할 계획이에요.</li>
+                  </ol>
+                  <p>가족 목소리는 어르신과 녹음한 가족이 함께 동의했을 때 사용하고, 동의를 거두면 기본 목소리로 돌아가요.</p>
+                  <p class="step-links"><a href="https://developers.openai.com/api/docs/guides/voice-agents">OpenAI 음성 API</a> · <a href="https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&amp;dataSetSn=71517&amp;topMenu=100">AI Hub 방언 데이터</a> · <a href="https://huggingface.co/LiquidAI/LFM3-Audio-2B">Liquid AI 모델 카드</a></p>
+                </details>
+                <div class="roadmap-scene" aria-hidden="true">
+                  <div class="plan-screen">
+                    <span class="plan-label"><i></i>어르신의 말씀</span>
+                    <div class="wave plan-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <strong class="plan-quote">“그거 하나 시키도.”</strong>
+                  </div>
+                  <div class="plan-note"><span class="note-label">마실이 다시 확인해요</span><strong>“지난번에 드신 쌀 한 봉지 맞으세요?”</strong></div>
+                </div>
+              </div>
+            </li>
+            <li class="roadmap-step" id="roadmap-order" tabindex="-1">
+              <span class="step-number" aria-hidden="true">04</span>
+              <div class="step-content">
+                <h3>확인한 물건을 주문해요</h3>
+                <p>판매처에서 받은 상품과 배송비를 읽어드려요. 어르신이 확인하시면 미리 허용한 품목과 금액 안에서는 주문하고, 새 물건이나 한도 초과 주문은 가족이 앱에서 승인해요.</p>
+                <p>실제 주문을 넣기 전에는 서버가 배송지와 이전 요청을 확인해 같은 물건이 두 번 주문되는 일을 막아요.</p>
+                <div class="roadmap-scene" aria-hidden="true">
+                  <div class="plan-screen">
+                    <span class="plan-label"><i></i>어르신이 확인한 주문</span>
+                    <strong class="plan-quote">쌀 4kg · 한 봉지</strong>
+                    <span class="plan-price">18,900원 <small>배송비 포함</small></span>
+                  </div>
+                  <div class="plan-note"><span class="note-label">가족 화면 · 자동 주문 한도 30,000원 예시</span><div class="plan-receipt"><span>한 봉지 · 18,900원</span><b>자동 주문</b></div><div class="plan-receipt"><span>두 봉지 · 35,800원</span><b>가족 확인</b></div></div>
+                </div>
+              </div>
+            </li>
+            <li class="roadmap-step" id="roadmap-sensor" tabindex="-1">
+              <span class="step-number" aria-hidden="true">05</span>
+              <div class="step-content">
+                <h3>집 안 신호가 오면 안부를 물어요</h3>
+                <p>싱크대 아래에 물이 새거나 큰 충격음이 들리면, 마실이 먼저 어르신께 괜찮으신지 여쭤봐요. 도움을 요청하시거나 응답이 없을 때 가족에게 확인을 부탁하는 흐름을 시험해 볼 계획이에요.</p>
+                <div class="roadmap-scene" aria-hidden="true">
+                  <div class="plan-screen">
+                    <span class="plan-label"><i></i>부엌 누수 센서</span>
+                    <strong class="plan-quote">싱크대 아래에서<br>물기가 감지됐어요.</strong>
+                  </div>
+                  <div class="plan-note"><span class="note-label">마실이 먼저 여쭤봐요</span><strong>“할머니, 부엌 바닥은 괜찮아요?”</strong><span>도움이 필요하거나 응답이 없으면 가족에게 알려요.</span></div>
+                </div>
+              </div>
+            </li>
+          </ol>
+          <div class="roadmap-dock" aria-hidden="true">
+            <div class="roadmap-dock-label"><span>화면 예시</span><span class="roadmap-counter">01 / 05</span></div>
+            <div class="roadmap-frames"></div>
+            <div class="roadmap-meter"><span></span></div>
+          </div>
         </div>
       </div>
     </section>
