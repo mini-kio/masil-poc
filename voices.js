@@ -1,8 +1,24 @@
-// Prerecorded dialogue for the fictional speakers in the demo.
-window.masilVoiceFiles = {
-  'ask-rice': './ask-rice.mp3',
-  'offer-rice': './offer-rice.mp3',
-  'confirm-rice': './confirm-rice.mp3',
-  'delivered': './delivered.mp3',
-  'interest': './interest.mp3',
+// ElevenLabs recordings for every spoken line in the demonstration.
+window.masilDialogue = {
+  'ask-rice': { speaker: '어르신', text: '마실아, 집에 쌀이 다 떨어져 간다.', file: './ask-rice.mp3?rev=2' },
+  'confirm-rice': { speaker: '어르신', text: '그래, 그거 하나 시키도.', file: './confirm-rice.mp3?rev=2' },
+  'delivered': { speaker: '마실', text: '할머니, 오늘 쌀이 도착했대요. 잘 받으셨어요?', file: './delivered.mp3' },
+  'interest': { speaker: '어르신', text: '요새 저녁마다 동백꽃 필 무렵 보는데, 참 재밌더라.', file: './interest.mp3?rev=2' },
+  'interest-ask': { speaker: '마실', text: '요즘 보시는 드라마 이야기를 가족에게 전해드릴까요?', file: './voice-interest-ask.mp3' },
+  'family-question': { speaker: '마실', text: '할머니, 오늘 점심은 잘 챙겨 드셨어요?', file: './voice-family-question.mp3' },
+  'meeting': { speaker: '어르신', text: '응, 잘 먹었어. 이번 금요일 두 시에 동네 모임도 있다.', file: './voice-elder-meeting.mp3' },
+  'schedule-ask': { speaker: '마실', text: '금요일 오후 두 시 동네 모임을 가족 일정에 적어드릴까요?', file: './voice-schedule-ask.mp3' },
+  'offer-rice': { speaker: '마실', text: '할머니, 지난번에 드셨던 4kg짜리 쌀 한 봉지 다시 시켜드릴까요? 배송비까지 18,900원이에요.', file: './offer-rice.mp3' },
+  'offer-two': { speaker: '마실', text: '쌀 두 봉지로 바꿀까요? 배송비를 포함하면 35,800원이라 가족에게 먼저 확인받을게요.', file: './voice-offer-two.mp3' },
+  'confirm-two': { speaker: '어르신', text: '그래, 두 봉지로 시키도.', file: './voice-elder-two.mp3' },
+  'auto-ordered': { speaker: '마실', text: '네, 정해둔 한도 안이라 집으로 보내드리도록 주문했어요.', file: './voice-auto-ordered.mp3' },
+  'family-pending': { speaker: '마실', text: '두 봉지는 정해둔 한도를 넘어 가족에게 확인을 부탁드렸어요.', file: './voice-family-pending.mp3' },
+  'family-approved': { speaker: '마실', text: '가족이 확인해주셔서 주문이 접수됐어요.', file: './voice-family-approved.mp3' },
+  'cancel-order': { speaker: '마실', text: '네, 이번 주문을 취소했어요.', file: './voice-canceled.mp3' },
+  'received-elder': { speaker: '어르신', text: '응, 잘 받았다.', file: './voice-elder-received.mp3' },
+  'received-reply': { speaker: '마실', text: '잘 받으셨다고 가족에게도 알려드렸어요.', file: './voice-received-reply.mp3' },
+  'interest-shared': { speaker: '마실', text: '드라마 이야기를 가족에게만 정리해서 전했어요.', file: './voice-interest-shared.mp3' },
+  'interest-private': { speaker: '마실', text: '알겠어요. 우리 둘이 나눈 이야기로 간직할게요.', file: './voice-interest-private.mp3' },
+  'schedule-saved': { speaker: '마실', text: '금요일 오후 두 시 동네 모임으로 가족 달력에 적어두었어요.', file: './voice-schedule-saved.mp3' },
+  'schedule-skipped': { speaker: '마실', text: '네, 이번 일정은 이야깃거리로 둘게요.', file: './voice-schedule-skipped.mp3' },
 };

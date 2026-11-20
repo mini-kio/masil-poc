@@ -6,20 +6,9 @@ const familyPanel = document.querySelector('#family-panel');
 const soundButton = document.querySelector('#sound-toggle');
 const announcement = document.querySelector('#announcement');
 const caseButtons = [...demo.querySelectorAll('[data-case]')];
-const recorded = window.masilVoiceFiles || {};
+const dialogueLines = window.masilDialogue;
 const rice = { name: '쌀 4kg', unitPrice: 16900, delivery: 2000, limit: 30000 };
 const money = new Intl.NumberFormat('ko-KR');
-
-const elder = (text, sample = '') => ({ speaker: '어르신', text, sample });
-const masil = (text, sample = '') => ({ speaker: '마실', text, sample });
-const requestLine = elder('마실아, 집에 쌀이 다 떨어져 간다.', 'ask-rice');
-const answerLine = elder('그래, 그거 하나 시키도.', 'confirm-rice');
-const deliveredLine = masil('할머니, 오늘 쌀이 도착했대요. 잘 받으셨어요?', 'delivered');
-const dramaLine = elder('요새 저녁마다 동백꽃 필 무렵 보는데, 참 재밌더라.', 'interest');
-const shareLine = masil('요즘 보시는 드라마 이야기를 가족에게 전해드릴까요?');
-const familyQuestion = masil('할머니, 오늘 점심은 잘 챙겨 드셨어요?');
-const meetLine = elder('응, 잘 먹었어. 이번 금요일 두 시에 동네 모임도 있다.');
-const scheduleLine = masil('금요일 오후 두 시 동네 모임을 가족 일정에 적어드릴까요?');
 
 const orderStart = () => ({ phase: 'idle', quantity: 1, route: '', log: [], spoken: [] });
 const interestStart = () => ({ phase: 'idle', log: [], spoken: [] });
@@ -38,7 +27,6 @@ function stopSound() {
   audio.onended = null;
   audio.onerror = null;
   audio.pause();
-  window.speechSynthesis?.cancel();
   demo.classList.remove('is-speaking');
 }
 
@@ -54,43 +42,26 @@ function playSpeech(lines) {
       demo.classList.remove('is-speaking');
       return;
     }
-    const advance = () => next(index + 1);
-    let fallbackStarted = false;
-    const speakInBrowser = () => {
-      if (id !== playbackId || fallbackStarted) return;
-      fallbackStarted = true;
-      audio.onended = null;
-      audio.onerror = null;
-      const synthesis = window.speechSynthesis;
-      const koreanVoice = synthesis?.getVoices().find(voice => /^ko(?:[-_]|$)/i.test(voice.lang));
-      if (!koreanVoice) {
-        advance();
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(line.text);
-      utterance.lang = 'ko-KR';
-      utterance.voice = koreanVoice;
-      utterance.rate = line.speaker === '어르신' ? .87 : .92;
-      utterance.onend = advance;
-      utterance.onerror = advance;
-      synthesis.speak(utterance);
+    let advanced = false;
+    const advance = () => {
+      if (advanced || id !== playbackId) return;
+      advanced = true;
+      next(index + 1);
     };
-    demo.classList.add('is-speaking');
-    if (line.sample && recorded[line.sample]) {
-      audio.onended = advance;
-      audio.onerror = speakInBrowser;
-      audio.src = recorded[line.sample];
-      audio.play().catch(speakInBrowser);
-    } else {
-      speakInBrowser();
-    }
+    audio.onended = advance;
+    audio.onerror = advance;
+    audio.src = line.file;
+    audio.play().then(() => {
+      if (id === playbackId && !advanced) demo.classList.add('is-speaking');
+    }).catch(advance);
   }
 
   next(0);
 }
 
-function addDialogue(...lines) {
+function addDialogue(...keys) {
   const scenario = scenarios[current];
+  const lines = keys.map(key => dialogueLines[key]);
   scenario.log.push(...lines);
   scenario.spoken = lines;
   playSpeech(lines);
@@ -119,13 +90,6 @@ function dialogue(log, placeholder) {
 
 function totalPrice(quantity) {
   return rice.unitPrice * quantity + rice.delivery;
-}
-
-function offer(quantity) {
-  if (quantity === 1) {
-    return masil('할머니, 지난번에 드셨던 4kg짜리 쌀 한 봉지 다시 시켜드릴까요? 배송비까지 18,900원이에요.', 'offer-rice');
-  }
-  return masil(`쌀 두 봉지로 바꿀까요? 배송비를 포함하면 ${money.format(totalPrice(quantity))}원이라 가족에게 먼저 확인받을게요.`);
 }
 
 function quantityPicker(quantity) {
@@ -244,7 +208,7 @@ function canChangeOrder() {
 
 const actions = {
   'ask-rice'() {
-    if (scenarios.order.phase === 'idle') updatePhase('quote', requestLine, offer(1));
+    if (scenarios.order.phase === 'idle') updatePhase('quote', 'ask-rice', 'offer-rice');
   },
   quantity(target) {
     const order = scenarios.order;
@@ -252,56 +216,56 @@ const actions = {
     if (!canChangeOrder() || (quantity !== 1 && quantity !== 2) || order.quantity === quantity) return;
     order.quantity = quantity;
     order.route = '';
-    updatePhase('quote', offer(quantity));
+    updatePhase('quote', quantity === 1 ? 'offer-rice' : 'offer-two');
   },
   'confirm-order'() {
     const order = scenarios.order;
     if (order.phase !== 'quote') return;
     const automatic = totalPrice(order.quantity) <= rice.limit;
     order.route = automatic ? 'automatic' : 'family';
-    const reply = order.quantity === 1 ? answerLine : elder('그래, 두 봉지로 시켜도.');
+    const reply = order.quantity === 1 ? 'confirm-rice' : 'confirm-two';
     if (automatic) {
-      updatePhase('ordered', reply, masil('네, 정해둔 한도 안이라 집으로 보내드리도록 주문했어요.'));
+      updatePhase('ordered', reply, 'auto-ordered');
     } else {
-      updatePhase('pending', reply, masil('두 봉지는 정해둔 한도를 넘어 가족에게 확인을 부탁드렸어요.'));
+      updatePhase('pending', reply, 'family-pending');
     }
   },
   'approve-order'() {
-    if (scenarios.order.phase === 'pending') updatePhase('ordered', masil('가족이 확인해주셔서 주문이 접수됐어요.'));
+    if (scenarios.order.phase === 'pending') updatePhase('ordered', 'family-approved');
   },
   'cancel-order'() {
-    if (canChangeOrder() || scenarios.order.phase === 'ordered') updatePhase('canceled', masil('네, 이번 주문을 취소했어요.'));
+    if (canChangeOrder() || scenarios.order.phase === 'ordered') updatePhase('canceled', 'cancel-order');
   },
   'deliver-order'() {
-    if (scenarios.order.phase === 'ordered') updatePhase('delivered', deliveredLine);
+    if (scenarios.order.phase === 'ordered') updatePhase('delivered', 'delivered');
   },
   'receive-order'() {
-    if (scenarios.order.phase === 'delivered') updatePhase('received', elder('응, 잘 받았어.'), masil('잘 받으셨다고 가족에게도 알려드렸어요.'));
+    if (scenarios.order.phase === 'delivered') updatePhase('received', 'received-elder', 'received-reply');
   },
   'restart-order'() {
     scenarios.order = orderStart();
-    updatePhase('quote', requestLine, offer(1));
+    updatePhase('quote', 'ask-rice', 'offer-rice');
   },
   'tell-interest'() {
-    if (scenarios.interest.phase === 'idle') updatePhase('permission', dramaLine, shareLine);
+    if (scenarios.interest.phase === 'idle') updatePhase('permission', 'interest', 'interest-ask');
   },
   'allow-share'() {
-    if (scenarios.interest.phase === 'permission') updatePhase('shared', masil('드라마 이야기를 가족에게만 정리해서 전했어요.'));
+    if (scenarios.interest.phase === 'permission') updatePhase('shared', 'interest-shared');
   },
   'decline-share'() {
-    if (scenarios.interest.phase === 'permission') updatePhase('private', masil('알겠어요. 우리 둘이 나눈 이야기로 간직할게요.'));
+    if (scenarios.interest.phase === 'permission') updatePhase('private', 'interest-private');
   },
   'queue-question'() {
     if (scenarios.calendar.phase === 'idle') updatePhase('queued');
   },
   'continue-talk'() {
-    if (scenarios.calendar.phase === 'queued') updatePhase('review', familyQuestion, meetLine, scheduleLine);
+    if (scenarios.calendar.phase === 'queued') updatePhase('review', 'family-question', 'meeting', 'schedule-ask');
   },
   'save-schedule'() {
-    if (scenarios.calendar.phase === 'review') updatePhase('scheduled', masil('금요일 오후 두 시 동네 모임으로 가족 달력에 적어두었어요.'));
+    if (scenarios.calendar.phase === 'review') updatePhase('scheduled', 'schedule-saved');
   },
   'skip-schedule'() {
-    if (scenarios.calendar.phase === 'review') updatePhase('skipped', masil('네, 이번 일정은 이야깃거리로 둘게요.'));
+    if (scenarios.calendar.phase === 'review') updatePhase('skipped', 'schedule-skipped');
   },
   reset() {
     scenarios[current] = initializers[current]();
@@ -375,6 +339,5 @@ function scheduleStory() {
 window.addEventListener('scroll', scheduleStory, { passive: true });
 window.addEventListener('resize', scheduleStory, { passive: true });
 plainStory.addEventListener('change', scheduleStory);
-if (Object.keys(recorded).length) document.querySelector('#voice-credit').hidden = false;
 updateStory();
 render();
