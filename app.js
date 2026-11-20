@@ -111,21 +111,21 @@ const orderStatus = {
 
 function renderOrder() {
   const { phase, quantity, route, log } = scenarios.order;
-  const caption = dialogue(log, '어르신이 쌀을 부탁하면 마실이 지난 주문을 찾아요.');
+  const caption = dialogue(log, '어르신이 쌀을 부탁하시면 마실이 지난 주문 기록을 찾습니다.');
   if (phase === 'idle') {
     return [
       caption + controls(button('ask-rice', '쌀 부탁하기')),
-      '<p class="empty">주문을 요청하면 여기서 보실 수 있어요.</p>',
+      '<p class="empty">어르신이 주문을 요청하시면 이 화면에 표시됩니다.</p>',
     ];
   }
 
   const hints = {
-    quote: '사전 등록한 품목으로, 시연 자동 주문 한도는 배송비 포함 30,000원이에요.',
-    pending: '배송비를 포함한 총액이 한도를 넘어 가족 확인이 필요해요.',
-    ordered: route === 'automatic' ? '사전 허용한 품목과 한도 안에서 자동으로 주문이 접수됐어요.' : '가족이 확인한 뒤 주문이 접수됐어요.',
-    delivered: '마실이 어르신에게 물건을 잘 받았는지 묻고 있어요.',
-    received: '어르신이 잘 받았다고 답하셨어요.',
-    canceled: '이 요청은 취소됐어요.',
+    quote: '사전 등록된 품목이며, 시연용 자동 주문 한도는 배송비 포함 30,000원입니다.',
+    pending: '배송비 포함 총액이 자동 주문 한도를 넘어 가족 확인이 필요합니다.',
+    ordered: route === 'automatic' ? '사전 허용된 품목과 한도 안에서 자동으로 주문이 접수되었습니다.' : '가족 확인을 거쳐 주문이 접수되었습니다.',
+    delivered: '마실이 어르신께 물건을 잘 받으셨는지 여쭙고 있습니다.',
+    received: '어르신이 물건을 잘 받으셨다고 답하셨습니다.',
+    canceled: '이번 주문 요청이 취소되었습니다.',
   };
   const orderCard = `${status(phase, orderStatus[phase])}<div class="summary-card">
     <p class="card-title">${rice.name} · ${quantity}봉</p>
@@ -135,12 +135,12 @@ function renderOrder() {
   const cancel = button('cancel-order', '주문 취소', 'secondary');
   const replay = button('replay', '대사 다시 듣기', 'text-button');
   const voiceActions = {
-    quote: controls(button('confirm-order', '이대로 주문'), cancel, replay),
+    quote: controls(button('confirm-order', '이대로 주문하기'), cancel, replay),
     pending: controls(cancel, replay),
     ordered: controls(cancel, replay),
-    delivered: controls(button('receive-order', '잘 받았어요'), replay),
-    received: controls(button('restart-order', '다시 부탁하기', 'secondary')),
-    canceled: controls(button('restart-order', '다시 부탁하기', 'secondary')),
+    delivered: controls(button('receive-order', '수령 확인하기'), replay),
+    received: controls(button('restart-order', '다시 부탁하기', 'secondary'), replay),
+    canceled: controls(button('restart-order', '다시 부탁하기', 'secondary'), replay),
   };
   const familyActions = {
     pending: controls(button('approve-order', '모의 주문 승인')),
@@ -152,18 +152,24 @@ function renderOrder() {
 
 function renderInterest() {
   const { phase, log } = scenarios.interest;
-  const caption = dialogue(log, '요즘 즐겨 보는 드라마 이야기로 마실과 대화를 시작해요.');
+  const caption = dialogue(log, '요즘 즐겨 보시는 드라마 이야기로 마실과 대화를 시작합니다.');
+  const replay = button('replay', '대사 다시 듣기', 'text-button');
+  const restart = button('restart-interest', '처음으로 돌아가기', 'secondary');
   const voiceActions = {
     idle: controls(button('tell-interest', '요즘 이야기하기')),
-    permission: controls(button('allow-share', '가족에게 전해줘'), button('decline-share', '이번엔 간직할래', 'secondary'), button('replay', '대사 다시 듣기', 'text-button')),
-    shared: '',
-    private: '',
+    permission: controls(button('allow-share', '가족에게 공유하기'), button('decline-share', '공유하지 않기', 'secondary'), replay),
+    shared: controls(restart, replay),
+    private: controls(restart, replay),
   };
-  let family = '<p class="empty">어르신이 공유를 허락하신 소식이 여기에 나타나요.</p>';
+  let family = '<p class="empty">어르신이 공유를 허락하신 소식이 이곳에 표시됩니다.</p>';
   if (phase === 'shared') {
     family = `${status(phase, '어르신이 전한 소식')}
-      <div class="summary-card"><p class="card-title">요즘 즐겨 보는 드라마</p><p>저녁마다 〈동백꽃 필 무렵〉을 즐겨 보세요.</p></div>
-      <p class="family-hint">다음 통화에서 물어보세요. “요즘 보시는 드라마, 어떤 장면이 제일 좋았어요?”</p>`;
+      <div class="summary-card"><p class="card-title">요즘 즐겨 보시는 드라마</p><p>저녁마다 〈동백꽃 필 무렵〉을 즐겨 보십니다.</p></div>
+      <p class="family-hint">다음 통화에서 자연스럽게 꺼내 보세요. “요즘 보시는 드라마, 어떤 장면이 제일 좋으셨어요?”</p>`;
+  } else if (phase === 'private') {
+    family = `${status(phase, '공유하지 않음')}
+      <p class="empty">어르신이 공유를 원하지 않으셔서 가족 화면에는 전달되지 않았습니다.</p>
+      <p class="family-hint">어르신이 허락하신 이야기만 공유되며, 원하지 않는 기억은 언제든 수정하거나 지울 수 있습니다.</p>`;
   }
   return [caption + voiceActions[phase], family];
 }
@@ -171,20 +177,23 @@ function renderInterest() {
 function renderCalendar() {
   const { phase, log } = scenarios.calendar;
   const caption = dialogue(log, phase === 'queued'
-    ? '가족이 남긴 질문을 마실이 다음 대화에서 여쭤봐요.'
-    : '가족 화면에서 안부 질문을 남겨 대화를 시작해 보세요.');
+    ? '가족이 남긴 안부 질문을 마실이 다음 대화에서 자연스럽게 여쭙습니다.'
+    : '먼저 가족 화면에서 안부 질문을 남겨 대화를 시작해 보세요.');
+  const replay = button('replay', '대사 다시 듣기', 'text-button');
+  const restart = button('restart-calendar', '처음으로 돌아가기', 'secondary');
   const voiceActions = {
     idle: '',
     queued: controls(button('continue-talk', '마실과 대화하기')),
-    review: controls(button('save-schedule', '그 일정 적어줘'), button('skip-schedule', '이번엔 됐어요', 'secondary')),
-    scheduled: '',
-    skipped: '',
+    review: controls(button('save-schedule', '일정에 추가하기'), button('skip-schedule', '추가하지 않기', 'secondary'), replay),
+    scheduled: controls(restart, replay),
+    skipped: controls(restart, replay),
   };
   const family = phase === 'idle'
-    ? '<div class="summary-card"><p class="card-title">점심은 잘 챙겨 드셨는지 여쭤봐 줘.</p></div>' + controls(button('queue-question', '이 안부 질문 남기기'))
-    : `${status(phase, phase === 'queued' ? '다음 대화에 질문 예정' : '어르신에게 질문 완료')}
+    ? '<div class="summary-card"><p class="card-title">“오늘 점심은 잘 챙겨 드셨는지 여쭤봐 줘.”</p><p>가족이 남겨둔 안부를 마실이 대화 중 자연스럽게 여쭙습니다.</p></div>' + controls(button('queue-question', '안부 질문 남기기'))
+    : `${status(phase, phase === 'queued' ? '다음 대화에서 질문 예정' : '안부 질문 완료')}
       <div class="summary-card"><p class="card-title">점심은 잘 챙겨 드셨어요?</p></div>
-      ${phase === 'scheduled' ? `<p class="family-hint">공유 일정</p><div class="summary-card"><p class="card-title">동네 모임</p><p>금요일 오후 2시</p></div>` : ''}`;
+      ${phase === 'scheduled' ? `<p class="family-hint">공유 달력 일정</p><div class="summary-card"><p class="card-title">동네 모임</p><p>금요일 오후 2시</p></div>` : ''}
+      ${phase === 'skipped' ? `<p class="family-hint">어르신이 일정 등록을 원하지 않으셔서 공유 달력에는 추가되지 않았습니다.</p>` : ''}`;
   return [caption + voiceActions[phase], family];
 }
 
@@ -255,6 +264,10 @@ const actions = {
   'decline-share'() {
     if (scenarios.interest.phase === 'permission') updatePhase('private', 'interest-private');
   },
+  'restart-interest'() {
+    scenarios.interest = interestStart();
+    stopSound();
+  },
   'queue-question'() {
     if (scenarios.calendar.phase === 'idle') updatePhase('queued');
   },
@@ -266,6 +279,10 @@ const actions = {
   },
   'skip-schedule'() {
     if (scenarios.calendar.phase === 'review') updatePhase('skipped', 'schedule-skipped');
+  },
+  'restart-calendar'() {
+    scenarios.calendar = calendarStart();
+    stopSound();
   },
   reset() {
     scenarios[current] = initializers[current]();
@@ -312,7 +329,7 @@ demo.addEventListener('click', event => {
   restoreFocus(target, panel);
   const latest = scenarios[current].log.at(-1);
   const statusText = current === 'order' ? orderStatus[phase] : '';
-  announcement.textContent = [statusText, latest?.text].filter(Boolean).join('. ') || (phase === 'queued' ? '가족이 안부 질문을 남겼어요.' : '시연을 다시 시작했습니다.');
+  announcement.textContent = [statusText, latest?.text].filter(Boolean).join('. ') || (phase === 'queued' ? '가족이 안부 질문을 남겼습니다.' : '시연을 처음 상태로 되돌렸습니다.');
 });
 
 const story = document.querySelector('.story-canvas');
