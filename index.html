@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf9f6">
+  <meta name="description" content="어르신이 스피커에 말을 걸면, 필요한 도움과 나누고 싶은 소식을 가족에게 이어주는 AI 말동무 마실의 체험형 시연입니다.">
+  <title>마실 | 어르신과 가족을 이어주는 AI 말동무</title>
+  <link rel="icon" href="./masil-mark.webp" type="image/webp">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./voices.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#experience">시연으로 바로 가기</a>
+  <header class="masthead" id="top">
+    <div class="wrap masthead-inner">
+      <a class="brand" href="#top" aria-label="마실 첫 화면">
+        <img src="./masil-logo.webp" alt="마실" width="330" height="144">
+      </a>
+      <nav aria-label="마실 둘러보기">
+        <a href="#experience">시연</a>
+        <a href="#roadmap">향후 계획</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">2026 엘리스 AI 챌린지</p>
+        <h1 id="hero-title">어르신과 가족을<br>이어주는 AI 말동무</h1>
+        <p class="lede">스피커에 말을 걸면, 마실이 일상의 이야기를 듣고 필요한 도움과 나누고 싶은 소식을 가족에게 이어줘요.</p>
+        <a class="button primary" href="#experience">시연 시작</a>
+      </div>
+      <figure class="hero-photo">
+        <img src="./masil-evening.webp" alt="저녁 식탁에 앉아 작은 스피커에 말을 거는 어르신" width="1200" height="900" fetchpriority="high">
+      </figure>
+    </section>
+
+    <section class="story border-top" aria-label="마실이 어르신과 가족을 잇는 방법">
+      <div class="wrap story-grid" id="story">
+        <article class="story-step" data-step="listen">
+          <h2>“마실아, 쌀이 다<br>떨어져 간다.”</h2>
+          <p>평소처럼 말을 걸면 마실이 지난 주문을 찾아요. 무엇을 몇 개 주문할지, 배송비까지 얼마인지 다시 여쭤봐요.</p>
+        </article>
+        <article class="story-step" data-step="connect">
+          <h2>그 한마디가<br>가족에게 이어져요.</h2>
+          <p>가족은 필요한 주문이나 일정을 확인할 수 있어요. 어르신이 나누고 싶다고 한 이야기는 다음 통화의 대화거리가 돼요.</p>
+        </article>
+
+        <div class="story-visual" aria-hidden="true">
+          <div class="story-canvas">
+            <div class="sample-speaker">
+              <div class="sample-device-title"><span class="small-light"></span> 어르신 화면</div>
+              <div class="wave story-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <p class="sample-line">“마실아, 쌀이 다 떨어져 간다.”</p>
+              <p class="sample-reply">지난번에 드신 쌀 한 봉지, 다시 시켜드릴까요?</p>
+            </div>
+            <div class="sample-phone">
+              <div class="sample-family-label"><img src="./masil-mark.webp" alt="" width="21" height="23"> 가족 화면</div>
+              <div class="sample-family-card">
+                <span>생필품 주문</span>
+                <strong>쌀 4kg · 1봉</strong>
+                <span class="sample-amount">18,900원 <span>주문 접수</span></span>
+              </div>
+              <div class="sample-family-card short-card">
+                <span>어르신이 전한 소식</span>
+                <strong>요즘 즐겨 보는 드라마</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="experience border-top" id="experience" aria-labelledby="experience-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2 id="experience-title">어르신과 가족,<br>두 화면으로 체험하기</h2>
+            <p>어르신의 대화와 가족에게 도착하는 소식을 함께 확인해 보세요.</p>
+          </div>
+          <div class="utility">
+            <button class="button quiet" id="sound-toggle" type="button" aria-pressed="true">음성 켜짐</button>
+            <button class="button quiet" type="button" data-action="reset">다시 시작</button>
+          </div>
+        </div>
+        <div class="case-control" role="group" aria-label="체험 선택">
+          <button type="button" data-case="order" aria-pressed="true">생필품 주문</button>
+          <button type="button" data-case="interest" aria-pressed="false">관심사 공유</button>
+          <button type="button" data-case="calendar" aria-pressed="false">안부와 일정</button>
+        </div>
+        <div class="demo-panels">
+          <section class="device voice-device" aria-labelledby="voice-heading">
+            <div class="device-head">
+              <h3 id="voice-heading">어르신 화면</h3>
+              <div class="wave live-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div id="voice-panel" class="device-body"></div>
+          </section>
+          <section class="device family-device" aria-labelledby="family-heading">
+            <div class="device-head">
+              <h3 id="family-heading">가족 화면</h3>
+              <span class="device-label"><span class="status-dot"></span> 시연 앱</span>
+            </div>
+            <div id="family-panel" class="device-body"></div>
+          </section>
+        </div>
+        <p class="demo-note">가상 대사와 상품으로 진행하는 시연이에요. 주문과 결제는 모의로 처리돼요.</p>
+        <p class="sr-only" id="announcement" role="status" aria-atomic="true"></p>
+        <noscript><p>체험하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
+      </div>
+    </section>
+
+    <section class="roadmap border-top" id="roadmap" aria-labelledby="roadmap-title">
+      <div class="wrap roadmap-grid">
+        <div class="roadmap-intro">
+          <h2 id="roadmap-title">마실을 집에<br>놓을 수 있다면</h2>
+          <p>태블릿 한 대로 시작하고, 익숙한 집안 기기에서 쓸 수 있도록 넓혀가려고 해요.</p>
+        </div>
+        <div class="roadmap-topics">
+          <details open>
+            <summary>태블릿이나 스피커로 시작</summary>
+            <div class="details-content">
+              <p>태블릿에는 설치형 웹앱(PWA)을 열어 큰 글씨와 말하기 버튼을 제공하고, 가족은 휴대폰에서 소식과 주문을 확인해요. 일반 스피커는 Raspberry Pi와 USB 마이크에 연결해 대화 기기로 쓸 수 있어요.</p>
+              <p>태블릿용 화면과 Pi 연결 프로그램은 오픈소스로 공개하는 방향을 검토해요. 가족 계정과 주문을 처리하는 기본 서버는 직접 운영해요.</p>
+            </div>
+          </details>
+          <details>
+            <summary>공유기 설정 없이 연결</summary>
+            <div class="details-content">
+              <p>태블릿과 Pi가 운영 서버에 HTTPS·WebSocket으로 먼저 접속해요. 서버가 등록된 가족 앱으로 소식과 주문 상태를 전달하므로 집 공유기에 포트포워딩을 설정할 필요가 없어요. 집에 서버를 직접 두고 운영한다면, 인증된 리버스 터널로 마실 서비스에 연결해요.</p>
+              <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/">리버스 터널 연결 방식</a>
+            </div>
+          </details>
+          <details>
+            <summary>사투리와 실시간 음성 대화</summary>
+            <div class="details-content">
+              <p><strong>OpenAI API</strong>로 응답 속도와 대화 중 말을 끊고 다시 듣는 동작을 확인해요. 듣기와 말하기를 동시에 처리하는 GPT-Live-1도 비교해요.</p>
+              <p><strong>단계별 처리</strong>에서는 AI Hub의 강원도·경상도 중·노년층 방언으로 인식률을 비교해요. 필요한 경우 Whisper Large-v3를 추가 학습시키고, 음성 인식 → AI 판단 → 음성 응답을 연결해요. 수량과 거절 표현은 따로 평가해요.</p>
+              <p><strong>자체 음성 모델</strong>은 LFM3-Audio-2B의 오디오 구조를 참고해요. 이 모델이 공식 지원하는 음성 대화는 영어예요. 한국어로 말하면서 동시에 듣고, 어르신이 말을 보태면 자연스럽게 다시 듣는 것을 연구 목표로 둬요.</p>
+              <p class="references"><a href="https://developers.openai.com/api/docs/guides/voice-agents">OpenAI 음성 API</a> · <a href="https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&amp;dataSetSn=71517&amp;topMenu=100">AI Hub 방언 데이터</a> · <a href="https://huggingface.co/LiquidAI/LFM3-Audio-2B">Liquid AI 모델 카드</a></p>
+            </div>
+          </details>
+          <details>
+            <summary>실제 주문과 집 안 센서</summary>
+            <div class="details-content">
+              <p>실제 주문에서는 서버가 품목, 총액, 배송지와 승인 여부를 확인하고 중복 주문을 막아요. 가족 목소리는 어르신과 녹음한 가족이 동의한 경우에 쓰고, 동의를 철회하면 기본 음성으로 돌려요.</p>
+              <p>이후 피지컬 AI로 넓혀 충격음이나 누수 센서 신호를 받으면 먼저 어르신에게 상황을 물어요. 응답이 없거나 도움을 요청하면 가족에게 알리는 흐름을 시험해요.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-top">
+    <div class="wrap footer-inner">
+      <a class="brand" href="#top" aria-label="마실 첫 화면으로">
+        <img src="./masil-logo.webp" alt="마실" width="330" height="144" loading="lazy">
+      </a>
+      <p>엘리스 AI 챌린지 시연<span id="voice-credit" hidden> · 가상 음성 ElevenLabs</span></p>
+    </div>
+  </footer>
+</body>
+</html>
