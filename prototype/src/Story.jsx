@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { combinePeaks, useVoice } from './AudioDeck.jsx';
-import { day, places } from './day.js';
+import { day, places, cueIndex } from './day.js';
 import useStoryScroll from './useStoryScroll.js';
-import { nextNarratedBeat } from './storyPacing.js';
 import Devices, { paintDevices } from './Devices.jsx';
 
 const asset = name => import.meta.env.BASE_URL + name;
@@ -34,7 +33,7 @@ function FamilyCard({ beat, cue }) {
   </aside>;
 }
 
-function RoomWorld({ controller, position, actor, reading, dialogueBeat, cue, linear, portal }) {
+function RoomWorld({ controller, position, actor, reading, cue, linear, portal }) {
   const host = useRef(null);
   const pins = useRef([]);
   const bubble = useRef(null);
@@ -67,102 +66,128 @@ function RoomWorld({ controller, position, actor, reading, dialogueBeat, cue, li
       hidden={reading.index !== 0 || status !== 'ready'} href={'#'+place.id} aria-label={place.object+' 장면 보기'}>
       <i aria-hidden="true"/><span>{place.object}</span>
     </a>)}
-    <Bubble bubble={bubble} beat={dialogueBeat} cue={cue} visible={!linear && !reading.bridge && (reading.index>0 || reading.wakeShown || actor.current.audio)} />
-    {!linear && !reading.bridge && beat.place===3 && <FamilyCard beat={beat} cue={dialogueBeat===beat?cue:0}/>}
+    <Bubble bubble={bubble} beat={beat} cue={cue} visible={!linear && !reading.bridge && (reading.index>0 || reading.wakeShown || actor.current.audio)} />
+    {!linear && !reading.bridge && beat.place===3 && <FamilyCard beat={beat} cue={cue}/>}
   </div>;
 }
 
 export default function Story() {
-  const root=useRef(null),stage=useRef(null),controller=useRef(null),position=useRef(0),actor=useRef({});
-  const layer=useRef(null),portal=useRef({progress:0,source:null,webgl:false,owner:'room',paint:null});
-  portal.current.paint=()=>paintDevices(layer.current,portal.current);
-  const controls=useRef({goal:{index:0,cue:0,bridge:false},seeking:false,guided:false,autoUntil:0,skipBridge:false,snapCaption:false});
-  const narrator=useRef({});
-  const played=useRef(-1),done=useRef(false),resume=useRef(null);
-  const [spoken,setSpoken]=useState(-1);
-  const [linear,setLinear]=useState(()=>matchMedia(compactQuery).matches);
-  const [soundOn,setSoundOn]=useState(false),[onScreen,setOnScreen]=useState(true);
-  const voice=useVoice();
-  const useAudioTime=soundOn && onScreen && !voice.error && spoken>=0;
-  narrator.current={index:spoken,elapsed:voice.elapsed,active:useAudioTime,finished:done.current};
-  const reading=useStoryScroll({root,stage,controller,position,portal,controls,narrator,linear});
-  const beat=day[reading.index],cue=reading.cue,place=places[beat.place];
-  actor.current={line:beat.id+'-'+cue,speaker:beat.cues[cue].speaker,place:beat.place,
-    audio:useAudioTime && voice.playing,level:voice.level,onCall:beat.id==='family-call' && cue>=3};
+  const root = useRef(null), stage = useRef(null), controller = useRef(null);
+  const position = useRef(0), actor = useRef({}), layer = useRef(null);
+  const portal = useRef({ progress: 0, source: null, webgl: false, owner: 'room', paint: null });
+  portal.current.paint = () => paintDevices(layer.current, portal.current);
+  const [linear, setLinear] = useState(() => matchMedia(compactQuery).matches);
+  const [soundOn, setSoundOn] = useState(false), [onScreen, setOnScreen] = useState(true);
+  const reading = useStoryScroll({ root, stage, controller, position, portal, linear });
 
-  useEffect(()=>{
-    const media=matchMedia(compactQuery),change=()=>setLinear(media.matches);
-    media.addEventListener('change',change);return ()=>media.removeEventListener('change',change);
-  },[]);
-  useEffect(()=>{
-    let inView=true;
-    const sync=()=>{ const active=inView&&!document.hidden; if(!active) controls.current.guided=false; setOnScreen(active); };
-    const observer=new IntersectionObserver(([entry])=>{inView=entry.isIntersecting;sync();});
-    observer.observe(root.current); document.addEventListener('visibilitychange',sync);
-    return ()=>{observer.disconnect();document.removeEventListener('visibilitychange',sync);};
-  },[]);
+  const voice = useVoice();
+  const activeBeat = useRef(-1), guided = useRef(false), suspended = useRef(null);
+  const playback = useRef(voice);
+  playback.current = voice;
+  const target = soundOn && onScreen && !reading.bridge ? reading.index : -1;
+  const currentTarget = useRef(target);
+  currentTarget.current = target;
+  const beat = day[reading.index], place = places[beat.place];
+  const useAudioTime = target >= 0 && activeBeat.current === target && !voice.error;
+  const resumeTime = suspended.current?.index === target ? suspended.current.elapsed : 0;
+  const cue = target >= 0 && !voice.error
+    ? cueIndex(beat, useAudioTime ? voice.elapsed : resumeTime)
+    : reading.cue;
+  const words = beat.cues[cue];
+  actor.current = { line: beat.id+'-'+cue, speaker: words.speaker, place: beat.place,
+    audio: useAudioTime && voice.playing, level: voice.level, onCall: beat.id === 'family-call' && cue >= 3 };
 
-  const startBeat=useCallback(function playBeat(index,from=0) {
-    const ctl=controls.current;
-    played.current=index;done.current=false;resume.current=null;setSpoken(index);
-    voice.play(day[index].files,from,lastLine=>{
-      if(!lastLine) return false;
-      done.current=true;
-      ctl.request?.();
-      if(ctl.seeking) return false;
-      const next=nextNarratedBeat(index,ctl.goal.index);
-      if(next!==index) { playBeat(next); return true; }
-      if(ctl.guided) {
-        ctl.autoUntil=performance.now()+1400;
-        if(index===day.length-1) ctl.guided=false;
-        document.getElementById(day[index+1]?.id??'roadmap')?.scrollIntoView({
-          behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'
+  useEffect(() => {
+    const media = matchMedia(compactQuery);
+    const change = () => setLinear(media.matches);
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, []);
+
+  useEffect(() => {
+    let inView = true;
+    const sync = () => {
+      const visible = inView && !document.hidden;
+      if (!visible) guided.current = false;
+      setOnScreen(visible);
+    };
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; sync(); });
+    observer.observe(root.current);
+    document.addEventListener('visibilitychange', sync);
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); };
+  }, []);
+
+  useEffect(() => {
+    const takeControl = () => { guided.current = false; };
+    const key = event => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) takeControl();
+    };
+    const pointer = event => {
+      if (event.clientX >= document.documentElement.clientWidth) takeControl();
+    };
+    const link = event => {
+      if (event.target.closest?.('a[href^="#"]:not(.scroll-invite)')) takeControl();
+    };
+    window.addEventListener('wheel', takeControl, { passive: true });
+    window.addEventListener('touchmove', takeControl, { passive: true });
+    document.addEventListener('pointerdown', pointer);
+    document.addEventListener('keydown', key);
+    document.addEventListener('click', link);
+    return () => {
+      window.removeEventListener('wheel', takeControl);
+      window.removeEventListener('touchmove', takeControl);
+      document.removeEventListener('pointerdown', pointer);
+      document.removeEventListener('keydown', key);
+      document.removeEventListener('click', link);
+    };
+  }, []);
+
+  const startBeat = useCallback((index, from = 0) => {
+    activeBeat.current = index;
+    suspended.current = null;
+    voice.play(day[index].files, from, lastLine => {
+      if (lastLine && guided.current && currentTarget.current === index) {
+        const next = day[index + 1]?.id ?? 'roadmap';
+        if (next === 'roadmap') guided.current = false;
+        document.getElementById(next)?.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
         });
       }
       return false;
     });
-  },[voice.play]);
+  }, [voice.play]);
 
-  controls.current.onSeek=goal=>{
-    if(!soundOn || !onScreen) return;
-    if(goal.bridge) {
-      played.current=-1;done.current=false;resume.current=null;setSpoken(-1);voice.stop();
-    } else startBeat(goal.index,day[goal.index].cues[goal.cue].at);
-  };
-  useEffect(()=>{
-    const ctl=controls.current;
-    if(!soundOn||!onScreen) {
-      if(played.current>=0) {
-        if(soundOn&&!onScreen&&!done.current) resume.current={index:played.current,elapsed:voice.elapsed};
-        if(!soundOn) resume.current=null;
-        played.current=-1;done.current=false;setSpoken(-1);voice.stop();
+  useEffect(() => {
+    if (!soundOn || reading.bridge) suspended.current = null;
+    if (activeBeat.current === target) return;
+    if (activeBeat.current >= 0) {
+      if (soundOn && !onScreen && !reading.bridge && playback.current.playing) {
+        suspended.current = { index: activeBeat.current, elapsed: playback.current.elapsed };
       }
-      return;
+      activeBeat.current = -1;
+      voice.stop();
     }
-    if(ctl.seeking||voice.error||ctl.skipBridge&&reading.atPortal) return;
-    const target=ctl.goal.index;
-    if(played.current<0) {
-      if(ctl.goal.bridge && !resume.current) return;
-      const saved=resume.current;
-      startBeat(saved?.index??target,saved?.elapsed??0);
-    } else if(done.current && played.current!==target) {
-      startBeat(nextNarratedBeat(played.current,target));
-    }
-  },[soundOn,onScreen,reading.target,reading.atPortal,voice.playing,voice.error,voice.elapsed,voice.stop,startBeat]);
-  useEffect(()=>{controls.current.request?.();},[useAudioTime,spoken,voice.elapsed,voice.playing,voice.error]);
-  useEffect(()=>{controller.current?.listening(useAudioTime&&voice.playing);},[useAudioTime,voice.playing]);
-  const impact=Boolean(beat.cues[cue].impact);
-  useEffect(()=>{controller.current?.impact(impact);},[impact]);
+    if (target < 0) return;
+    const saved = suspended.current;
+    // Avoid starting a passing room's audio while a menu link scrolls across several rooms.
+    const timer = setTimeout(() => startBeat(target, saved?.index === target ? saved.elapsed : 0), 90);
+    return () => clearTimeout(timer);
+  }, [target, soundOn, onScreen, reading.bridge, startBeat, voice.stop]);
+
+  useEffect(() => { controller.current?.listening(useAudioTime && voice.playing); }, [useAudioTime, voice.playing]);
+  useEffect(() => { controller.current?.impact(Boolean(words.impact)); }, [words.impact]);
 
   function toggleSound() {
-    const ctl=controls.current;
-    if(soundOn&&!voice.error) {
-      ctl.guided=false;ctl.snapCaption=true;resume.current=null;
-      setSoundOn(false);voice.stop();
+    if (soundOn && !voice.error) {
+      guided.current = false;
+      activeBeat.current = -1;
+      suspended.current = null;
+      setSoundOn(false);
+      voice.stop();
     } else {
-      ctl.cancelSeek?.();ctl.skipBridge=false;setSoundOn(true);startBeat(reading.index);
+      setSoundOn(true);
+      startBeat(reading.index);
     }
-    ctl.request?.();
   }
 
   return <section className={'reel' + (linear ? ' linear-story' : '')} ref={root} aria-label="할머니 댁의 하루">
@@ -175,7 +200,7 @@ export default function Story() {
     <div className="reel-stage" ref={stage} data-chapter={place.id} data-beat={beat.id} data-narration={useAudioTime ? "speaking" : "scroll"}>
       <div className="reel-atmosphere" aria-hidden="true"><div/><div/></div>
       <div className="wrap reel-layout">
-        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} dialogueBeat={beat} cue={cue} linear={linear} portal={portal}/>
+        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} cue={cue} linear={linear} portal={portal}/>
         {day.map((b,i) => {
           const Heading=i===0?'h1':'h2';
           return <article className="story-caption" key={b.id} id={linear ? b.id : undefined}
@@ -186,8 +211,9 @@ export default function Story() {
             <p className="scene-description">{b.body}</p>
             {!i && <a className="scroll-invite" href="#morning" onClick={event=>{
               event.preventDefault();
-              controls.current.cancelSeek?.();controls.current.guided=true; controls.current.skipBridge=false;
-              setSoundOn(true); startBeat(0);
+              guided.current = true;
+              setSoundOn(true);
+              startBeat(0);
             }}><i aria-hidden="true"/>소리와 함께 하루 따라가기</a>}
             {linear && <div className="plain-cues">
               {b.cues.map((c,j)=><p key={j}><b>{c.speaker}</b>{c.text}</p>)}

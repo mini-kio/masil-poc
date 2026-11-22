@@ -1,10 +1,11 @@
 .reel {
   --stage-height: calc(100svh - var(--head));
+  --scroll-distance: 1.2;
   display: grid; position: relative; isolation: isolate;
 }
 .chapter-track, .reel-stage { grid-area: 1 / 1; }
 .chapter-track { pointer-events: none; }
-.chapter-stop { position: relative; height: clamp(330px, var(--run), 880px); scroll-margin-top: var(--head); }
+.chapter-stop { position: relative; height: calc(clamp(330px, var(--run), 880px) * var(--scroll-distance)); scroll-margin-top: var(--head); }
 .chapter-stop:last-child { height: calc(var(--stage-height) + var(--run)); }
 .story-alias { position: absolute; left: 0; top: 0; height: 1px; width: 1px; scroll-margin-top: var(--head); }
 .reel-stage {

@@ -287,6 +287,8 @@ export function mountRoom(host, options = {}) {
   let visible = true;
   let lost = false;
   let frame = 0;
+  let scrollFramePending = false;
+  let viewWidth = 0, viewHeight = 0, resizeTimer = 0;
   let time = 0;
   let last = 0;
   let shadowPhase = -1;
@@ -297,16 +299,21 @@ export function mountRoom(host, options = {}) {
   function draw(now) {
     frame = 0;
     if (!visible || lost || document.hidden) return;
-    if (!motion.matches && last && now - last < 1000/32 - 1) { wake(); return; }
+    const cameraMoving = Math.abs(goal - progress) > .0002;
+    if (!scrollFramePending && !cameraMoving && !motion.matches && last && now - last < 1000/30 - 1) {
+      wake();
+      return;
+    }
+    scrollFramePending = false;
     const dt = last ? Math.min((now - last) / 1000, .075) : .03;
     last = now;
-    const ease = motion.matches ? 1 : 1 - Math.exp(-10 * dt);
+    const ease = motion.matches ? 1 : 1 - Math.exp(-14 * dt);
     progress += (goal - progress) * ease;
-    if (portal.progress>=HANDOFF) progress=goal;
+    if (portal.progress >= HANDOFF || Math.abs(goal - progress) < .0002) progress = goal;
     const phase = motion.matches ? Math.round(progress) : progress;
     const index = Math.min(shots.length - 2, Math.floor(phase));
     const a = shots[index], b = shots[index + 1];
-    const blend = THREE.MathUtils.smoothstep(phase - index, .08, .96);
+    const blend = THREE.MathUtils.smoothstep(phase - index, 0, 1);
     if (motion.matches) pointer.set(0,0);
     else pointer.lerp(aimPointer, ease);
     look.lerpVectors(a.aim, b.aim, blend);
@@ -317,7 +324,7 @@ export function mountRoom(host, options = {}) {
     const flat = 15 * Math.cos(angle);
     camera.position.set(look.x + Math.sin(yaw)*flat, look.y + 15*Math.sin(angle), look.z+Math.cos(yaw)*flat);
     camera.lookAt(look);
-    const portraitZoom=host.clientWidth<520 ? 1+.18*Math.min(1,phase)*parallax : 1;
+    const portraitZoom=viewWidth<520 ? 1+.18*Math.min(1,phase)*parallax : 1;
     // Fill the camera with the same pad on tall and wide devices, keeping its corners inside the frame.
     const fittedZoom=Math.min(.90*(camera.right-camera.left)/.98,.89*(camera.top-camera.bottom)/.635);
     const endZoom=index===shots.length-2 ? fittedZoom : b.zoom;
@@ -367,7 +374,7 @@ export function mountRoom(host, options = {}) {
     props.pad.visible=meshOwnsPad;
     portal.webgl=true;
     portal.owner=props.pad.visible?'room':'screen';
-    host.dataset.tablet=portal.owner;
+    if (host.dataset.tablet !== portal.owner) host.dataset.tablet = portal.owner;
     renderer.render(scene, camera);
     const bubble = options.bubble.current;
     if (bubble && !bubble.hidden) {
@@ -375,7 +382,7 @@ export function mountRoom(host, options = {}) {
       else if (actor.speaker === '생활 소리') projected.copy(actor.place === 2 ? pinPositions[1] : impactSpot);
       else projected.copy(actor.place === 3 ? pinPositions[2] : actor.place === 2 ? kitchenSpeaker : pinPositions[0]);
       projected.project(camera);
-      const width = host.clientWidth, height = host.clientHeight;
+      const width = viewWidth, height = viewHeight;
       const x = (.5 + projected.x*.5)*width, y = (.5-projected.y*.5)*height;
       const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
       const left = clamp(x - bw * (actor.speaker === '할머니' ? .75 : .27),7,Math.max(7,width-bw-7));
@@ -394,15 +401,16 @@ export function mountRoom(host, options = {}) {
     }
     if (portal.progress>0 && (portal.progress<.48 || !portal.source)) {
       const rect=host.getBoundingClientRect();
-      const matrix=new DOMMatrixReadOnly(getComputedStyle(host).transform==='none'?undefined:getComputedStyle(host).transform);
+      const transform = getComputedStyle(host).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
       const centerX=rect.left+rect.width/2, centerY=rect.top+rect.height/2;
       let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
       let lx=Infinity,ty=Infinity,rx=-Infinity,by=-Infinity;
       for (const corner of corners) {
         props.pad.localToWorld(projected.copy(corner)).project(camera);
-        const dx=projected.x*.5*host.clientWidth, dy=-projected.y*.5*host.clientHeight;
+        const dx=projected.x*.5*viewWidth, dy=-projected.y*.5*viewHeight;
         const x=centerX+matrix.a*dx+matrix.c*dy, y=centerY+matrix.b*dx+matrix.d*dy;
-        const localX=host.clientWidth/2+dx,localY=host.clientHeight/2+dy;
+        const localX=viewWidth/2+dx,localY=viewHeight/2+dy;
         lx=Math.min(lx,localX);rx=Math.max(rx,localX);ty=Math.min(ty,localY);by=Math.max(by,localY);
         l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);
       }
@@ -434,6 +442,10 @@ export function mountRoom(host, options = {}) {
   const resize = () => {
     const { clientWidth: width, clientHeight: height } = host;
     if (!width || !height) return;
+    if (width === viewWidth && height === viewHeight) { wake(); return; }
+    const firstSize = !viewWidth || !viewHeight;
+    viewWidth = width;
+    viewHeight = height;
     const ratio = width / height;
     const extent = Math.max(4.45, 6.98 / ratio);
     camera.left = -extent * ratio;
@@ -441,7 +453,15 @@ export function mountRoom(host, options = {}) {
     camera.top = extent;
     camera.bottom = -extent;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height, false);
+    // Keep the projection in step with the CSS frame. Allocate the new drawing buffer once resizing settles.
+    clearTimeout(resizeTimer);
+    const fitBuffer = () => {
+      renderer.setSize(viewWidth, viewHeight, false);
+      wake();
+    };
+    if (firstSize) fitBuffer();
+    else resizeTimer = setTimeout(fitBuffer, 120);
+    scrollFramePending = true;
     wake();
   };
   const resizeObserver = new ResizeObserver(resize);
@@ -476,7 +496,10 @@ export function mountRoom(host, options = {}) {
 
   return {
     setProgress(value) {
-      goal = clamp(value, 0, shots.length - 1);
+      const next = clamp(value, 0, shots.length - 1);
+      if (next === goal && portal.progress >= ROOM_GONE && portal.owner === 'screen') return;
+      goal = next;
+      scrollFramePending = true;
       wake();
     },
     refresh() { wake(); },
@@ -485,6 +508,7 @@ export function mountRoom(host, options = {}) {
     dispose() {
       visible = false;
       portal.webgl=false;
+      clearTimeout(resizeTimer);
       cancelAnimationFrame(frame);
       visibility.disconnect();
       resizeObserver.disconnect();

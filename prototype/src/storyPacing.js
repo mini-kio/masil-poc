@@ -1,49 +1,25 @@
-export const clamp01=v=>Math.max(0,Math.min(1,v));
+export function readChapter(tops, end, line) {
+  const last = tops.length - 1;
+  let index = 0;
+  while (index < last && line >= tops[index + 1]) index++;
 
-// A wheel notch or one Page Down never qualifies. A sustained fling must cover
-// well over one viewport within the same short window, in one direction.
-export function scrollVelocity(y=0,time=0) {
-  let samples=[{y,time}], sign=0;
-  return (next,now,height)=>{
-    const last=samples.at(-1);
-    if (next===last.y) return false;
-    const direction=Math.sign(next-last.y);
-    if (direction!==sign || now-last.time>245) {
-      samples=[{y:last.y,time:Math.max(last.time,now-170)}];
-      sign=direction;
-    }
-    samples.push({y:next,time:now});
-    while(samples.length>2 && now-samples[0].time>240) samples.shift();
-    const distance=Math.abs(next-samples[0].y)/Math.max(height,1);
-    const ms=Math.max(25,now-samples[0].time);
-    return distance>=1.7 && distance*1000/ms>=7;
-  };
+  const length = Math.max(1, (tops[index + 1] ?? end) - tops[index]);
+  const fraction = Math.max(0, Math.min(1, (line - tops[index]) / length));
+  return { index, fraction };
 }
 
-export function captionLayout(day) {
-  const beats=[],flat=[];
-  for (const [index,beat] of day.entries()) {
-    const first=flat.length;
-    const weights=beat.cues.map((cue,i)=>Math.max(2.2,(beat.cues[i+1]?.at??beat.seconds)-cue.at));
-    const total=weights.reduce((sum,n)=>sum+n,0);
-    let offset=0;
-    const ends=weights.map((weight,cue)=>{
-      const start=offset/total;
-      offset+=weight;
-      const end=offset/total;
-      flat.push({index,cue,middle:(start+end)/2,hold:Math.min(1250,570+beat.cues[cue].text.length*14)});
-      return end;
-    });
-    beats.push({first,ends});
-  }
-  return {flat,beats};
+// Short utterances still get a little space on the scroll track.
+export function captionEnds(beat) {
+  const weights = beat.cues.map((cue, i) => {
+    const next = beat.cues[i + 1]?.at ?? beat.seconds;
+    return Math.max(2.2, next - cue.at);
+  });
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let offset = 0;
+  return weights.map(weight => (offset += weight) / total);
 }
 
-export function scrollCue(beat,fraction) {
-  const n=beat.ends.findIndex(end=>fraction<end);
-  return n<0?beat.ends.length-1:n;
-}
-
-export function nextNarratedBeat(playing,target) {
-  return playing<0?target:playing+Math.sign(target-playing);
+export function scrollCue(ends, fraction) {
+  const index = ends.findIndex(end => fraction < end);
+  return index < 0 ? ends.length - 1 : index;
 }
