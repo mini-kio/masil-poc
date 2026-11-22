@@ -41,7 +41,7 @@ export const day = [
       line('day-water.mp3','마실','다행이에요. 물은 올려놓으셨어요?'),
       line('day-ready.mp3','할머니','응, 이제 끓을 기다.')) },
   { id:'kitchen',place:2,run:72,topic:'물이 끓는 부엌',title:['주전자가 먼저','대답했어요.'],
-    body:'조금 전 올려놓은 물이 끓어요. 할머니는 차를 따르다 쌀통을 슬쩍 들어 보세요.',
+    body:'조금 전 올려놓은 물이 끓어요. 할머니가 차를 따르다 쌀통을 슬쩍 들어 보셨어요.',
     ...dialogue(line('sound-kettle.mp3','생활 소리','주전자에서 보글보글 물이 끓어요.'),
       line('day-pour.mp3','마실','물 끓는 소리 나네요. 천천히 따르세요.'),
       line('day-rice-bin.mp3','할머니','그래. 어이구, 쌀통이 와 이리 가볍노.')) },

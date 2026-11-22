@@ -7,7 +7,7 @@ const blend=(a,b,t)=>a+(b-a)*t;
 const settings=[
   {key:'payment',title:'쌀 한 봉지를 부탁할 때',text:'가족이 예시 카드를 등록하고 자동 주문할 품목과 금액을 정해요. 새 물건이나 한도를 넘는 주문은 가족이 확인해요.'},
   {key:'address',title:'쌀을 받을 우리 집',text:'할머니 댁 배송지와 물건을 놓을 곳을 한 번 정해 두면, 주문할 때마다 주소를 다시 말씀하실 필요가 없어요.'},
-  {key:'profile',title:'처음 말을 걸기 전에',text:'할머니와 함께 안부를 묻기 좋은 시간, 익숙한 말투와 좋아하는 이야기를 골라요. 가족에게 전할 소식은 그때마다 여쭤봐요.'},
+  {key:'profile',title:'처음 말을 걸기 전에',text:'할머니께 안부를 묻기 좋은 시간, 익숙한 말투와 좋아하는 이야기를 함께 골라요. 가족에게 전할 소식은 그때마다 여쭤봐요.'},
 ];
 
 export function paintDevices(element,portal) {
@@ -98,7 +98,7 @@ function BuildIntro() {
   return <div className="build-intro"><h2>어떻게 만들까요?</h2>
     <ol><li><strong>집 기기 준비</strong><span>쓰던 태블릿에 웹앱을 열어요. DIY 스피커는 라즈베리파이에 USB 마이크와 스피커를 꽂아요.</span></li>
       <li><strong>가족 연결</strong><span>집 기기가 먼저 서버에 접속하고 가족 휴대폰을 연결해요.</span></li>
-      <li><strong>첫 안부 시험</strong><span>함께 안부를 나눈 뒤 허락한 소식이 가족 화면에 닿는지 살펴요.</span></li></ol></div>;
+      <li><strong>첫 안부 시험</strong><span>함께 안부를 나눈 뒤 허락하신 소식이 가족 화면에 닿는지 살펴요.</span></li></ol></div>;
 }
 
 export default function Devices({layer,linear}) {

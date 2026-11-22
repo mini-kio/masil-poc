@@ -107,7 +107,7 @@ export default function Demo({ initialCase = 'compare' }) {
                     <span>{scene.family ? scene.family.label : '이 장면에서 가족에게 전한 내용'}</span>
                     {callLine
                       ? <DaughterCall line={callLine} compact audible={voice.playing && !muted} level={voice.level}/>
-                      : <strong>{scene.family ? scene.family.text : '새 카드 0건'}</strong>}
+                      : <strong>{scene.family ? scene.family.text : '전해진 소식이 없어요'}</strong>}
                     {showActions(scene.family?.actions, 'choices family-actions')}
                     {scene.family?.call && !called && <button type="button" className="button secondary" onClick={() => setCalled(true)}>전화하기 예시</button>}
                     {called && <div className="call-preview"><strong>할머니 댁에 전화하는 중 · 모의</strong>
