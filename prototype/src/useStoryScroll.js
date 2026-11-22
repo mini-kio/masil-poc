@@ -104,7 +104,7 @@ export default function useStoryScroll({root,stage,controller,position,portal,co
     function moved() {
       if(!ctl.guided && performance.now()>ctl.autoUntil && fast(scrollY,performance.now(),innerHeight)) seekAfterMotion();
       else if(ctl.seeking) seekAfterMotion();
-      if(ctl.skipBridge && locate(scrollY).index<last) ctl.skipBridge=false;
+      if(ctl.skipBridge && !locate(scrollY).bridge) ctl.skipBridge=false;
       request();
     }
     function handBack(){ctl.guided=false;ctl.autoUntil=0;}
