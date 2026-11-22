@@ -80,7 +80,7 @@ export default function Story() {
   const actor = useRef({});
   const layer=useRef(null), portal=useRef({progress:0,source:null,paint:null});
   portal.current.paint=()=>paintDevices(layer.current,portal.current.progress,portal.current.source);
-  const lastPlayed=useRef(-1), desired=useRef(-1);
+  const lastPlayed=useRef(-1), desired=useRef(-1), guided=useRef(false);
   const [spoken,setSpoken]=useState(-1);
   const [reading, setReading] = useState({index:0,cue:0});
   const [linear, setLinear] = useState(() => matchMedia(compactQuery).matches);
@@ -106,18 +106,39 @@ export default function Story() {
   useEffect(() => {
     const element = root.current;
     let visible = true;
-    const sync = () => setOnScreen(visible && !document.hidden);
+    const sync = () => {
+      if (!visible || document.hidden) guided.current=false;
+      setOnScreen(visible && !document.hidden);
+    };
     const observer = new IntersectionObserver(([entry]) => { visible=entry.isIntersecting; sync(); });
     observer.observe(element);
     document.addEventListener('visibilitychange', sync);
     return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); };
   }, []);
+  useEffect(()=>{
+    // A manual gesture takes over from the listening tour without muting the scene.
+    const handBack=()=>{guided.current=false;};
+    const key=e=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) handBack();};
+    const link=e=>{if(e.target.closest('a[href^="#"]:not(.scroll-invite)')) handBack();};
+    window.addEventListener('wheel',handBack,{passive:true});
+    window.addEventListener('touchmove',handBack,{passive:true});
+    document.addEventListener('keydown',key);
+    document.addEventListener('click',link);
+    return ()=>{window.removeEventListener('wheel',handBack);window.removeEventListener('touchmove',handBack);document.removeEventListener('keydown',key);document.removeEventListener('click',link);};
+  },[]);
   const startBeat=useCallback(function playBeat(index) {
     lastPlayed.current=index;
     setSpoken(index);
-    voice.play(day[index].files,0,()=>{
+    voice.play(day[index].files,0,lastLine=>{
       const next=desired.current;
-      if (next===index) return false;
+      if (next===index) {
+        if (guided.current && lastLine) {
+          const target=document.getElementById(day[index+1]?.id ?? 'roadmap');
+          if (index===day.length-1) guided.current=false;
+          target?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+        }
+        return false;
+      }
       if (next>=0) playBeat(next);
       else { lastPlayed.current=-1; setSpoken(-1); voice.stop(); }
       return true;
@@ -138,7 +159,7 @@ export default function Story() {
 
   function toggleSound() {
     if (soundOn && !voice.error) {
-      desired.current=-1;
+      guided.current=false; desired.current=-1;
       setSoundOn(false);
       voice.stop();
     } else {
@@ -212,8 +233,9 @@ export default function Story() {
             <p className="scene-topic"><span/>{b.topic}<time className="small-scene-time">{places[b.place].time}</time></p>
             <Heading>{b.title.map((line,j)=><span className="title-mask" key={line}><span style={{'--line-delay':j*50+'ms'}}>{line}</span></span>)}</Heading>
             <p className="scene-description">{b.body}</p>
-            {!i && <a className="scroll-invite" href="#morning" onClick={()=>{
-              if(!soundOn) { desired.current=0; setSoundOn(true); startBeat(0); }
+            {!i && <a className="scroll-invite" href="#morning" onClick={event=>{
+              event.preventDefault();
+              guided.current=true; desired.current=0; setSoundOn(true); startBeat(0);
             }}><i aria-hidden="true"/>소리와 함께 하루 따라가기</a>}
             {linear && <div className="plain-cues">
               {b.cues.map((c,j)=><p key={j}><b>{c.speaker}</b>{c.text}</p>)}

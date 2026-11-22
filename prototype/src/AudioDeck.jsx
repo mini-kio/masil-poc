@@ -63,7 +63,7 @@ export function useVoice() {
       audio.onended = () => {
         if (!active()) return;
         accumulated += duration(files[index++]) || audio.duration || 0;
-        if (onPartEnd?.()) return;
+        if (onPartEnd?.(index===files.length)) return;
         if (index < files.length) loadPart(0);
         else setState({ playing: false, elapsed: indexed ? full : accumulated, error: false });
       };
