@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { seatGrandmother } from './grandmother.js';
 import { drawPad } from './padArtwork.js';
-import { HANDOFF, ROOM_GONE } from './deviceTimeline.js';
+import { HANDOFF, ROOM_GONE, easeBetween } from './deviceTimeline.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const shots = [
@@ -392,14 +392,20 @@ export function mountRoom(host, options = {}) {
       const matrix=new DOMMatrixReadOnly(getComputedStyle(host).transform==='none'?undefined:getComputedStyle(host).transform);
       const centerX=rect.left+rect.width/2, centerY=rect.top+rect.height/2;
       let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
+      let lx=Infinity,ty=Infinity,rx=-Infinity,by=-Infinity;
       for (const corner of corners) {
         props.pad.localToWorld(projected.copy(corner)).project(camera);
         const dx=projected.x*.5*host.clientWidth, dy=-projected.y*.5*host.clientHeight;
         const x=centerX+matrix.a*dx+matrix.c*dy, y=centerY+matrix.b*dx+matrix.d*dy;
+        const localX=host.clientWidth/2+dx,localY=host.clientHeight/2+dy;
+        lx=Math.min(lx,localX);rx=Math.max(rx,localX);ty=Math.min(ty,localY);by=Math.max(by,localY);
         l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);
       }
       portal.source={x:(l+r)/2,y:(t+b)/2,w:r-l,h:b-t};
-    }
+      const crop=easeBetween(portal.progress,.266,.328);
+      const edges=[ty,host.clientWidth-rx,host.clientHeight-by,lx].map(n=>(Math.max(0,n)*crop).toFixed(2)+'px').join(' ');
+      host.style.clipPath=crop ? 'inset('+edges+' round '+((rx-lx)*.042*crop).toFixed(2)+'px)' : '';
+    } else if(!portal.progress) host.style.clipPath='';
     if(portal.progress>0) portal.paint();
     if (phase < .9 && options.pins) {
       pinPositions.forEach((world, i) => {

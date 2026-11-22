@@ -73,6 +73,9 @@ export default function useStoryScroll({root,stage,controller,position,portal,co
       node.style.setProperty('--room-out',1-easeBetween(p,HANDOFF,ROOM_GONE));
       node.style.setProperty('--frame-scale',.91+.09*spread);
       node.style.setProperty('--frame-angle',(-2+2*spread)+'deg');
+      node.style.setProperty('--frame-edge',(1-spread)*Math.min(10,innerWidth*.0065)+'px');
+      node.style.setProperty('--frame-visibility',1-spread);
+      node.style.setProperty('--paper-tone',easeBetween(p,.257,.33)*100+'%');
       node.style.setProperty('--extra-width',17*spread+'%');
       node.style.setProperty('--world-shift',12.5*spread+'%');
       const group=day[index].place;

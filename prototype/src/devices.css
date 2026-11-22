@@ -65,7 +65,10 @@
 .reel-stage[data-transition="true"] .story-caption,.reel-stage[data-transition="true"] .scene-clock,.reel-stage[data-transition="true"] .reel-controls { opacity:var(--story-out,0); pointer-events:none; }
 .reel-stage[data-transition="true"] .room-world { opacity:var(--room-out,1); }
 .reel-stage[data-transition="true"]:has(.device-transition[data-owner="room"]) .room-world { opacity:1; }
-.reel-stage[data-transition="true"] .world-canvas { animation:none; transform:scale(var(--frame-scale,.91)) rotate(var(--frame-angle,-2deg)); }
+.reel-stage[data-transition="true"]:has(.device-transition[data-owner="screen"]) .room-world { opacity:0; }
+.reel-stage[data-chapter="family"][data-transition="true"] { background-color:color-mix(in srgb,#493543,#f7f3e9 var(--paper-tone,0%)); transition:none; }
+.reel-stage[data-transition="true"] .reel-atmosphere { opacity:var(--frame-visibility,1); }
+.reel-stage[data-transition="true"] .world-canvas { animation:none; transform:scale(var(--frame-scale,.91)) rotate(var(--frame-angle,-2deg)); border-width:var(--frame-edge,8px); box-shadow:0 15px 38px rgb(34 27 40 / calc(.33 * var(--frame-visibility,1))); }
 .chapter-stop.device-stop:last-child { height:calc(var(--stage-height) + clamp(2300px,610svh,6600px)); }
 @media(min-width:801px) {
   .reel-stage[data-transition="true"] .room-world { width:calc(64% + var(--extra-width,0%)); right:calc(-3% + var(--world-shift,0%)); }
