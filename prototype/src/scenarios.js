@@ -1,3 +1,5 @@
+import { connectCall, daughterReads } from './familyCall.js';
+
 const masil = (text, audio) => ({ speaker: '마실', text, audio });
 const elder = (text, audio) => ({ speaker: '할머니', text, audio });
 const sound = (text, audio) => ({ speaker: '집 안 소리', text, audio });
@@ -213,7 +215,9 @@ export const scenarios = {
       family: { label: '다음 통화 이야기', text: '요즘 저녁마다 《동백꽃 필 무렵》을 보신대요.', actions: [action('다음 가족 통화 보기', 'nextCall')] },
     },
     nextCall: {
-      lines: [{ speaker: '딸', text: '엄마, 그 드라마는 누가 제일 마음에 들어?', audio:'day-daughter.mp3' }, elder('나는 동백이가 제일 마음에 든다. 다음에 오면 같이 보자.','day-watch-together.mp3')],
+      lines: [...daughterReads, ...connectCall,
+        { callStage:'talking', speaker:'딸', text:'엄마, 그 드라마는 누가 제일 마음에 들어?', audio:'day-daughter.mp3' },
+        { ...elder('나는 동백이가 제일 마음에 든다. 다음에 오면 같이 보자.','day-watch-together.mp3'), callStage:'listening' }],
       clue: '어르신이 공유를 허락한 관심사', decision: '가족과 어르신이 그 이야기로 대화를 시작해요.',
       family: { label: '가족 통화 예시', text: '딸이 다음 방문에 드라마를 같이 보기로 했어요.' },
     },

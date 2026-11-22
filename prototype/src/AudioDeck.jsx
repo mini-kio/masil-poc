@@ -127,7 +127,7 @@ export function soundCue(files, at) {
   return 'question';
 }
 
-export default function AudioDeck({ files, voice, muted }) {
+export default function AudioDeck({ files, voice, muted, silentSeek = false }) {
   const fileKey = files.join('|');
   const peaks = useMemo(() => combinePeaks(fileKey ? fileKey.split('|') : []), [fileKey]);
   const scrub = useRef(null);
@@ -166,7 +166,7 @@ export default function AudioDeck({ files, voice, muted }) {
         <div className="trace-bars trace-past" aria-hidden="true">{peaks.map((h, i) => <i key={i} style={{ '--level': h + '%' }} />)}</div>
         <i className="trace-needle" aria-hidden="true" />
         <input type="range" min="0" max={full} step=".05" value={Math.min(full, voice.elapsed)}
-          aria-label="음원 재생 위치" disabled={muted} aria-valuetext={clock(voice.elapsed) + ' / ' + clock(full)}
+          aria-label={muted && silentSeek ? '통화 장면 위치' : '음원 재생 위치'} disabled={muted && !silentSeek} aria-valuetext={clock(voice.elapsed) + ' / ' + clock(full)}
           onPointerDown={begin} onPointerUp={finish} onPointerCancel={finish} onBlur={finish}
           onKeyDown={e => { if (['ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key)) begin(); }}
           onKeyUp={finish} onChange={e => voice.seek(files, e.currentTarget.valueAsNumber, !scrub.current && voice.playing)} />

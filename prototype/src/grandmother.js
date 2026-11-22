@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { figureParts } from './figureParts.js';
 
 // An original articulated character, in the same scale as the furniture. Local +Z faces forwards.
 export function seatGrandmother(parent) {
@@ -10,29 +11,7 @@ export function seatGrandmother(parent) {
   const skirt = cloth('#56576a'), shoes = cloth('#9c6358'), sole = cloth('#594741');
   const dark = cloth('#362b2a'), ruby = cloth('#a46759');
   const frame = new THREE.MeshStandardMaterial({color:'#705440',metalness:.38,roughness:.4});
-  const sphere = new THREE.SphereGeometry(1,24,16);
-  const tube = new THREE.CylinderGeometry(1,1,1,14);
-  const up = new THREE.Vector3(0,1,0), direction = new THREE.Vector3();
-  function piece(container, geo, material, x=0,y=0,z=0) {
-    const object = new THREE.Mesh(geo, material);
-    object.position.set(x,y,z); object.castShadow = object.receiveShadow = true;
-    container.add(object);
-    return object;
-  }
-  function oval(container, material, x,y,z, w,h,d) {
-    const m = piece(container,sphere,material,x,y,z);
-    m.scale.set(w,h,d); return m;
-  }
-  function seam(container, material, points, radius) {
-    const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
-    return piece(container,new THREE.TubeGeometry(curve,12,radius,6,false),material);
-  }
-  function between(mesh, a, b, rx, rz=rx) {
-    direction.subVectors(b,a);
-    mesh.position.addVectors(a,b).multiplyScalar(.5);
-    mesh.scale.set(rx,direction.length(),rz);
-    mesh.quaternion.setFromUnitVectors(up,direction.normalize());
-  }
+  const { piece, oval, seam, between, tube } = figureParts();
 
   const trunk=new THREE.Group(); root.add(trunk);
   oval(trunk,skirt,0,.095,.02,.31,.17,.258);
@@ -86,6 +65,8 @@ export function seatGrandmother(parent) {
   const handset=piece(trunk,new THREE.BoxGeometry(.083,.152,.031),dark);
   const handsetBack=piece(handset,new THREE.BoxGeometry(.061,.123,.004),knitEdge,0,0,-.017);
   handsetBack.castShadow=false;
+  const callLight=piece(handset,new THREE.CircleGeometry(.02,14),new THREE.MeshBasicMaterial({color:'#f4d583'}),0,.035,.017);
+  callLight.visible=false;
   const arms=[];
   for(const side of [-1,1]){
     const shoulder = new THREE.Vector3(side*.242,.646,.014);
@@ -120,7 +101,7 @@ export function seatGrandmother(parent) {
   const s=THREE.MathUtils.smoothstep, mix=THREE.MathUtils.lerp;
   let previousLine='', since=0, lifted=0;
   return {
-    head,
+    head, handset,
     update(phase, time, quiet, performance) {
       const walk=s(phase,4.32,5.02), toRice=s(phase,5.38,6.0), homeward=s(phase,6.38,7.05);
       const stand=s(phase,4.18,4.50)*(1-s(phase,6.88,7.19));
@@ -154,7 +135,8 @@ export function seatGrandmother(parent) {
         leg.foot.position.copy(leg.ankle); leg.foot.position.z+=.059;
         leg.outsole.position.copy(leg.foot.position); leg.outsole.position.y-=.043;
       }
-      const calling=performance.onCall ? 1 : 0;
+      const calling=performance.onCall ? 1 : performance.ringing ? .26 : 0;
+      callLight.visible=Boolean(performance.ringing);
       lifted += (calling-lifted)*(quiet ? 1 : .19);
       handset.visible=lifted>.03;
       for(const arm of arms){
@@ -168,7 +150,9 @@ export function seatGrandmother(parent) {
           arm.wrist.y=mix(arm.wrist.y,1.016,lifted);
           arm.wrist.z=mix(arm.wrist.z,.072,lifted);
           handset.position.copy(arm.wrist);
-          handset.position.y+=.038; handset.rotation.set(-.11,1.22,.22);
+          handset.position.y+=.038;
+          const buzz=performance.ringing && !quiet ? .035*Math.sin(time*37) : 0;
+          handset.rotation.set(-.11,mix(.14,1.22,lifted),.22+buzz);
         }
         between(arm.upper,arm.shoulder,arm.elbow,.088,.087);
         between(arm.lower,arm.elbow,arm.wrist,.072,.079);

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { audioFor, scenarios } from './scenarios.js';
-import AudioDeck, { soundCue, useVoice } from './AudioDeck.jsx';
+import AudioDeck, { duration, soundCue, useVoice } from './AudioDeck.jsx';
+import DaughterCall from './DaughterCall.jsx';
+import { callLineAt, isCallSound } from './familyCall.js';
 
 const mediaUrl = name => import.meta.env.BASE_URL + name;
 
@@ -15,6 +17,7 @@ export default function Demo({ initialCase = 'compare' }) {
   const scene = scenario[stage];
   const files = audioFor(scene);
   const cue = voice.playing ? soundCue(files, voice.elapsed) : null;
+  const callLine = scene.lines[0]?.callStage ? callLineAt(scene.lines, voice.elapsed, duration) : null;
   const received = Boolean(scene.family && !['start', 'queued'].includes(stage));
 
   useEffect(() => {
@@ -76,11 +79,11 @@ export default function Demo({ initialCase = 'compare' }) {
                   {[7,13,22,28,20,13,7].map((height, i) => <i key={i} style={{ '--bar': height + 'px', '--delay': i * -75 + 'ms' }} />)}
                 </span>
               </header>
-              <AudioDeck key={key + '/' + stage} files={files} voice={voice} muted={muted} />
+              <AudioDeck key={key + '/' + stage} files={files} voice={voice} muted={muted} silentSeek={Boolean(callLine)} />
               <div className="conversation" aria-live="polite">
                 {scene.lines.length ? scene.lines.map((line, i) => {
-                  const isSound = line.speaker === '집 안 소리';
-                  const lit = cue === (isSound ? 'impact' : line.speaker === '마실' ? 'question' : 'reply');
+                  const isSound = line.speaker === '집 안 소리' || isCallSound(line.speaker);
+                  const lit = callLine ? line === callLine : cue === (isSound ? 'impact' : line.speaker === '마실' ? 'question' : 'reply');
                   return <div key={key + stage + i} data-lit={lit} className={isSound ? 'sound-line' : 'dialogue-line'}>
                     <span>{line.speaker}</span><p>{line.text}</p>
                   </div>;
@@ -102,7 +105,9 @@ export default function Demo({ initialCase = 'compare' }) {
                   <div key={key + '/' + stage} className={'receipt' + (scene.family?.urgent ? ' urgent' : '')}
                     data-arrived={received} data-empty={!scene.family}>
                     <span>{scene.family ? scene.family.label : '이 장면에서 가족에게 전한 내용'}</span>
-                    <strong>{scene.family ? scene.family.text : '새 카드 0건'}</strong>
+                    {callLine
+                      ? <DaughterCall line={callLine} compact audible={voice.playing && !muted} level={voice.level}/>
+                      : <strong>{scene.family ? scene.family.text : '새 카드 0건'}</strong>}
                     {showActions(scene.family?.actions, 'choices family-actions')}
                     {scene.family?.call && !called && <button type="button" className="button secondary" onClick={() => setCalled(true)}>전화하기 예시</button>}
                     {called && <div className="call-preview"><strong>할머니 댁에 전화하는 중 · 모의</strong>

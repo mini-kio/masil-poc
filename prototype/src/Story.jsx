@@ -1,22 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { combinePeaks, useVoice } from './AudioDeck.jsx';
 import { day, places, cueIndex } from './day.js';
+import { isConnected } from './familyCall.js';
+import DaughterCall from './DaughterCall.jsx';
 import useStoryScroll from './useStoryScroll.js';
 import Devices, { paintDevices } from './Devices.jsx';
 
-const asset = name => import.meta.env.BASE_URL + name;
 const compactQuery = '(prefers-reduced-motion: reduce), (max-height: 600px), (max-width: 350px) and (max-height: 715px)';
 
-const voices = {'할머니':'elder','마실':'masil','딸':'family','생활 소리':'sound'};
+const voices = {'할머니':'elder','마실':'masil','딸':'family','생활 소리':'sound','전화벨':'sound','가족 소식':'sound'};
 
 function Bubble({ bubble, beat, cue, visible }) {
   const words = beat.cues[cue];
-  const peaks = useMemo(() => combinePeaks(beat.files, 32), [beat]);
+  const isSound = voices[words.speaker] === 'sound';
+  const peaks = useMemo(() => isSound ? combinePeaks([words.audio], 32) : [], [isSound, words.audio]);
   return <div className="spatial-bubble" ref={bubble} hidden={!visible} data-speaker={voices[words.speaker]}>
     <div className="bubble-paper" key={beat.id+'-'+cue}>
       <span className="bubble-speaker">{words.speaker}</span>
       <p>{words.text}</p>
-      {words.speaker === '생활 소리' && <div className="bubble-wave" aria-hidden="true">
+      {isSound && <div className="bubble-wave" aria-hidden="true">
         {peaks.map((h,i)=><i key={i} style={{height:Math.max(10,h)+'%'}}/>)}
       </div>}
     </div>
@@ -24,8 +26,8 @@ function Bubble({ bubble, beat, cue, visible }) {
 }
 
 function FamilyCard({ beat, cue }) {
-  const interest = beat.id === 'family-call';
-  const shared = cue >= (interest ? 3 : 2);
+  const interest = beat.id === 'family-news';
+  const shared = interest ? Boolean(beat.cues[cue].callStage) : cue >= 2;
   return <aside className="moment-letter" aria-label="가족 화면">
     <span>가족 화면 · {interest ? (shared ? '관심사 공유' : '공유 여부 확인 중') : (shared ? '수령 확인' : '배송 완료')}</span>
     <p key={beat.id+'-'+shared}>{interest ? (shared ? '요즘 《동백꽃 필 무렵》을 보신대요.' : '전해진 소식이 없어요.')
@@ -38,6 +40,8 @@ function RoomWorld({ controller, position, actor, reading, cue, linear, portal }
   const pins = useRef([]);
   const bubble = useRef(null);
   const beat = day[reading.index];
+  const words = beat.cues[cue];
+  const daughterSide = words.callStage && (words.speaker === '딸' || words.speaker === '가족 소식');
   const [status, setStatus] = useState('loading');
   useEffect(() => {
     let closed = false;
@@ -60,14 +64,13 @@ function RoomWorld({ controller, position, actor, reading, cue, linear, portal }
   useEffect(() => { controller.current?.refresh(); }, [reading.index, cue, linear, controller]);
   return <div className="room-world" data-room={status}>
     <div className="room-light" aria-hidden="true" />
-    <img className="room-photo" src={asset('masil-evening.webp')} alt="" width="1200" height="900" />
     <div ref={host} className="world-canvas" aria-hidden="true" />
     {places.slice(1).map((place, i) => <a className="object-pin" key={place.id} ref={el=>{pins.current[i]=el;}}
       hidden={reading.index !== 0 || status !== 'ready'} href={'#'+place.id} aria-label={place.object+' 장면 보기'}>
       <i aria-hidden="true"/><span>{place.object}</span>
     </a>)}
-    <Bubble bubble={bubble} beat={beat} cue={cue} visible={!linear && !reading.bridge && (reading.index>0 || reading.wakeShown || actor.current.audio)} />
-    {!linear && !reading.bridge && beat.place===3 && <FamilyCard beat={beat} cue={cue}/>}
+    <Bubble bubble={bubble} beat={beat} cue={cue} visible={!linear && !reading.bridge && !daughterSide && (reading.index>0 || reading.wakeShown || actor.current.audio)} />
+    {!linear && !reading.bridge && beat.place===3 && beat.id!=='family-call' && <FamilyCard beat={beat} cue={cue}/>}
   </div>;
 }
 
@@ -95,7 +98,8 @@ export default function Story() {
     : reading.cue;
   const words = beat.cues[cue];
   actor.current = { line: beat.id+'-'+cue, speaker: words.speaker, place: beat.place,
-    audio: useAudioTime && voice.playing, level: voice.level, onCall: beat.id === 'family-call' && cue >= 3 };
+    audio: useAudioTime && voice.playing, level: voice.level, sharedInterest: Boolean(words.callStage),
+    ringing: words.callStage === 'ringing', onCall: isConnected(words.callStage) };
 
   useEffect(() => {
     const media = matchMedia(compactQuery);
@@ -201,14 +205,20 @@ export default function Story() {
       <div className="reel-atmosphere" aria-hidden="true"><div/><div/></div>
       <div className="wrap reel-layout">
         <RoomWorld controller={controller} position={position} actor={actor} reading={reading} cue={cue} linear={linear} portal={portal}/>
-        {day.map((b,i) => {
+        {(linear ? day : [beat]).map((b, positionInList) => {
+          const i=linear ? positionInList : reading.index;
           const Heading=i===0?'h1':'h2';
-          return <article className="story-caption" key={b.id} id={linear ? b.id : undefined}
-            data-id={places[b.place].id} aria-hidden={!linear && reading.bridge ? true : undefined} hidden={!linear && reading.index!==i}>
+          const callLine = linear
+            ? b.cues.find(line => line.callStage === 'noticed' || line.callStage === 'talking')
+            : !reading.bridge && words.callStage ? words : null;
+          const title = b.id === 'family-news' && callLine ? ['딸의 휴대폰에','소식이 도착했어요.'] : b.title;
+          return <article className="story-caption" key={linear ? b.id : 'current'} id={linear ? b.id : undefined}
+            data-id={places[b.place].id} aria-hidden={!linear && reading.bridge ? true : undefined}>
             {linear && b.id==='morning-meal' && <span id="experience" className="story-alias"/>}
             <p className="scene-topic"><span/>{b.topic}<time className="small-scene-time">{places[b.place].time}</time></p>
-            <Heading>{b.title.map((line,j)=><span className="title-mask" key={line}><span style={{'--line-delay':j*50+'ms'}}>{line}</span></span>)}</Heading>
-            <p className="scene-description">{b.body}</p>
+            <Heading>{title.map((line,j)=><span className="title-mask" key={line}><span style={{'--line-delay':j*50+'ms'}}>{line}</span></span>)}</Heading>
+            {callLine ? <DaughterCall line={callLine} audible={!linear && useAudioTime && voice.playing} level={voice.level}/>
+              : <p className="scene-description">{b.body}</p>}
             {!i && <a className="scroll-invite" href="#morning" onClick={event=>{
               event.preventDefault();
               guided.current = true;

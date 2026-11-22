@@ -1,14 +1,15 @@
 import waveforms from './waveforms.json';
+import { connectCall, daughterReads } from './familyCall.js';
 
-const line = (file,speaker,text,impact=false) => ({file,speaker,text,impact});
+const line = (audio,speaker,text,impact=false) => ({audio,speaker,text,impact});
 function dialogue(...lines) {
   let seconds=0;
-  const cues=lines.map(({file,speaker,text,impact})=>{
-    const cue={at:seconds,speaker,text,impact};
-    seconds+=waveforms[file]?.seconds??0;
+  const cues=lines.map(item=>{
+    const cue={...item,at:seconds};
+    seconds+=waveforms[item.audio]?.seconds??0;
     return cue;
   });
-  return {files:lines.map(l=>l.file),cues,seconds};
+  return {files:lines.map(l=>l.audio),cues,seconds};
 }
 export const places = [
   { id:'home',nav:'집 전체',object:'할머니 댁',time:'오전 9시' },
@@ -55,13 +56,17 @@ export const day = [
     ...dialogue(line('day-knock.mp3','마실','할머니, 아침에 시킨 쌀이 왔대요. 문 앞에 있던가요?'),
       line('day-supper.mp3','할머니','응, 잘 받았다. 밥 안쳐 놓고 드라마 볼라꼬.'),
       line('day-received.mp3','마실','잘 받으셨다고 가족에게도 알려 드릴게요. 오늘은 무슨 드라마 보세요?')) },
-  { id:'family-call',place:3,run:110,topic:'딸에게서 걸려 온 전화',title:['“니만 온나.','밥은 내가 해 놓을게.”'],
-    body:'저녁 드라마 이야기를 딸에게 전해도 좋다고 하셨어요. 전화가 오자, 아침의 멸치볶음이 다시 대화에 올라요.',
+  { id:'family-news',place:3,run:110,topic:'저녁 드라마 이야기',title:['“담에 오면 내하고','같이 보자 캐라.”'],
+    body:'할머니가 즐겨 보시는 드라마가 있어요. 마실이 딸에게 어떤 이야기를 전해도 될지 여쭤봐요.',
     ...dialogue(line('day-drama.mp3','할머니','동백꽃 필 무렵, 그거 볼수록 재밌데이.'),
       line('day-share.mp3','마실','따님한테도 요즘 그 드라마 보신다고 전해 드릴까요?'),
       line('day-together.mp3','할머니','그래. 담에 오면 내하고 같이 보자 캐라.'),
-      line('day-call.mp3','딸','엄마, 동백이 본다며? 다음 주에 멸치볶음 가져갈까?'),
-      line('day-come.mp3','할머니','멸치볶음은 됐다. 니만 온나. 밥은 내가 해 놓을게.')) },
+      ...daughterReads) },
+  { id:'family-call',place:3,run:110,topic:'두 집의 저녁 식탁',title:['딸이 먼저 건','저녁 전화'],
+    body:'딸이 엄마에게 전화를 걸어요. 할머니가 벨소리를 듣고 받으시면 아침에 먹은 멸치볶음 이야기도 다시 나와요.',
+    ...dialogue(...connectCall,
+      { ...line('day-call.mp3','딸','엄마, 동백이 본다며? 다음 주에 멸치볶음 가져갈까?'),callStage:'talking' },
+      { ...line('day-come.mp3','할머니','멸치볶음은 됐다. 니만 온나. 밥은 내가 해 놓을게.'),callStage:'listening' }) },
 ];
 export function cueIndex(beat,seconds) {
   let i=0;

@@ -66,8 +66,7 @@
 }
 .reel-stage[data-chapter="kitchen"] .room-world { width:61%; transform:translate(-72%,-50%); }
 .room-light { width: 89%; height: 83%; left: 8%; top: 9%; position: absolute; border-radius: 50%; background: radial-gradient(ellipse, var(--ring), transparent 69%); opacity: .78; pointer-events: none; }
-.world-canvas, .room-photo { position: absolute; inset: 0; width: 100%; height: 100%; }
-.world-canvas { visibility: hidden; overflow: hidden; }
+.world-canvas { position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; overflow: hidden; }
 .reel-stage[data-chapter="morning"] .world-canvas { border-radius: 42% 42% 7px 7px / 39% 39% 7px 7px; }
 .reel-stage[data-chapter="kitchen"] .world-canvas {
   border-radius: 50%; border: 1px solid #a2d9cb70; box-shadow: 0 0 0 8px #b2e9d811,0 0 0 9px #bfeddf21;
@@ -80,9 +79,7 @@
 }
 @keyframes print-in { from { opacity: .14; transform: scale(.89) rotate(-3.1deg); } to { opacity: 1; transform: scale(.91) rotate(-2deg); } }
 .world-canvas canvas { width: 100%; height: 100%; }
-.room-photo { width: 88%; height: 79%; inset: 11% 5% auto auto; border-radius: 48% 48% 10px 10px; object-fit: cover; }
 .room-world[data-room="ready"] .world-canvas { visibility: visible; }
-.room-world[data-room="ready"] .room-photo { visibility: hidden; }
 .object-pin {
   position: absolute; z-index: 2; min-height: 42px; display: inline-flex; align-items: center;
   gap: 6px; transform: translate(-7px,-50%); color: #23382c; text-decoration: none;
@@ -136,7 +133,6 @@
   .scene-description { font-size: 1.01rem; line-height: 1.55; margin-top: 11px; max-width: 48ch; }
   .scroll-invite { margin-top:6px; }
   .room-world, .reel-stage[data-chapter="kitchen"] .room-world { position: relative; inset: auto; width: 100%; flex: 1; height: auto; min-height: 110px; order: 1; transform: none; transition: none; }
-  .room-photo { width: 81%; height: 94%; inset: 3% auto auto 9%; border-radius: 45% 45% 5px 5px; }
   .object-pin { font-size: .78rem; }
   .scene-clock, .reel-stage[data-chapter="kitchen"] .scene-clock { left: auto; right: 0; bottom: 2px; top: auto; font-size: .79rem; }
   .scene-clock > span { font-size: .78rem; }

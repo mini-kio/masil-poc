@@ -1,7 +1,7 @@
 import React from 'react';
 
 export function Workshop() {
-  return <section className="installation" aria-label="개발 방법 자세히">
+  return <section className="installation" id="voice-plan" aria-label="개발 방법 자세히">
     <div className="wrap development">
       <h3>개발 계획 자세히</h3>
       <div>
@@ -9,10 +9,13 @@ export function Workshop() {
           <p>태블릿 웹앱(PWA)과 Pi가 운영 서버에 먼저 HTTPS·WebSocket으로 접속하고, 서버가 등록된 가족에게 소식과 승인 요청을 전달해요. 집 공유기에서 포트를 열 필요가 없어요. 자가 호스팅을 선택하면 집 서버가 인증된 리버스 터널로 연결돼요.</p>
           <p>가족 계정과 주문 확인은 운영 서버에서 맡고, 태블릿 화면과 Pi 연결 프로그램, 설치 안내는 오픈소스로 공개할 계획이에요. 주문은 품목·금액·배송지·승인을 확인하고 중복 요청을 걸러요. <a href="https://github.com/mini-kio/masil-poc">시연 소스 보기</a></p>
         </details>
-        <details><summary>목소리와 생활음을 함께 이해하는 AI</summary>
+        <details open={window.location.hash === '#voice-plan' || undefined}><summary>목소리와 생활음을 함께 이해하는 AI</summary>
           <ol>
             <li><strong>첫 시제품.</strong> OpenAI Realtime API로 한국어 대화와 말 끊기를 시험해요. 생활음 분류기의 단서와 앞선 대화를 함께 보고 다음 확인 질문을 골라요. <a href="https://developers.openai.com/api/docs/guides/realtime-conversations">음성 대화 문서</a></li>
-            <li><strong>방언과 소리 이해.</strong> AI Hub의 중·노년층 방언 전사와 대화로 Whisper Large-v3를 추가 학습해 음성 인식 → 대화 판단 → 음성 합성을 시험해요. 오디오 인코더를 언어 모델에 연결한 뒤, 전사만 받은 경우와 원음까지 받은 경우의 수량·거절 이해와 잘못 보낸 알림을 새 화자·기기에서 비교해요. <a href="https://www.aihub.or.kr/aihubdata/data/view.do?dataSetSn=71517">방언 자료</a></li>
+            <li>
+              <p><strong>한국어 방언 대화와 끼어들기.</strong> LFM3-Audio-2B 같은 기존 오디오 모델을 마실의 한국어 대화에 맞게 파인튜닝할 계획이에요. AI Hub의 중·노년층 방언 음성과 전사문을 짝지어 강원도·경상도 말투를 정확히 받아쓰도록 학습해요. 두 사람이 주고받은 대화로는 앞서 나온 물건이나 일정을 기억하고 그에 맞게 한국어로 답하는 법을 익혀요. <a href="https://aihub.or.kr/aihubdata/data/view.do?dataSetSn=71517">AI Hub 방언 자료</a></p>
+              <p>끼어들기는 말이 겹치기 시작한 순간과 바뀐 요청을 표시한 대화 예시를 따로 만들어 연습해요. 마실이 “쌀 두 봉지를…” 하고 안내할 때 할머니가 “아이다, 한 봉만” 하시면, 안내를 멈추고 “한 봉지만 시킬까요?”라고 다시 확인하는 식이에요. 학습에 쓰지 않은 분들의 목소리로 받아쓰기의 글자 오류율, 고친 수량을 반영한 비율, 끼어든 뒤 마실이 말을 멈추기까지 걸린 시간을 학습 전후로 비교해요. 개선을 확인한 모델을 마실의 안부 대화와 음성 주문에 적용해요.</p>
+            </li>
             <li><strong>말하면서도 듣기.</strong> 기존 오디오 인코더·코덱과 직접 학습한 VAE 또는 코덱을 비교해요. 다음 발화의 음성 생성부터 한국어 전이중 대화로 넓혀 첫 응답 시간과 끼어들기 반영을 평가해요. <a href="https://huggingface.co/LiquidAI/LFM3-Audio-2B">참고 모델</a></li>
           </ol>
         </details>

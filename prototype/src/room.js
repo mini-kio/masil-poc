@@ -13,6 +13,7 @@ const shots = [
   { aim: [2.60, 1.37, -2.02], yaw: -.40, elevation: .36, zoom: 2.60, sun: '#c4e7ed', sky: '#d0e4e3', power: 1.85 },
   { aim: [1.47, 1.40, -2.05], yaw: -.13, elevation: .28, zoom: 2.81, sun: '#f2ddbf', sky: '#e0e4cf', power: 1.92 },
   { aim: [.86, 1.10, .70], yaw: -.23, elevation: .36, zoom: 2.53, sun: '#ffb78c', sky: '#ded0d0', power: 1.48 },
+  { aim: [.78, 1.18, .61], yaw: -.07, elevation: .31, zoom: 2.68, sun: '#ffad80', sky: '#d7c6ca', power: 1.33 },
   { aim: [.90, 1.24, .58], yaw: .25, elevation: .27, zoom: 2.85, sun: '#ffa478', sky: '#cebdd5', power: 1.18 },
   { aim:[.392,1.28,1.355], yaw:.28,elevation:.09,zoom:6.0,sun:'#ffc497',sky:'#d5c8c0',power:1.48 },
   { aim:[.392,1.28,1.355], yaw:.28,elevation:.014,zoom:23.0,sun:'#ffdab2',sky:'#f2e7d3',power:1.54 },
@@ -318,7 +319,8 @@ export function mountRoom(host, options = {}) {
     else pointer.lerp(aimPointer, ease);
     look.lerpVectors(a.aim, b.aim, blend);
     const arc = Math.sin(Math.PI * blend);
-    const parallax=1-THREE.MathUtils.smoothstep(phase,8,9.6);
+    const lastRoomShot=shots.length-3;
+    const parallax=1-THREE.MathUtils.smoothstep(phase,lastRoomShot,lastRoomShot+1.6);
     const yaw=mix(a.yaw,b.yaw,blend)+arc*.17+pointer.x*.105*parallax;
     const angle=mix(a.elevation,b.elevation,blend)+arc*.055-pointer.y*.046*parallax;
     const flat = 15 * Math.cos(angle);
@@ -366,7 +368,7 @@ export function mountRoom(host, options = {}) {
     props.trail.material.opacity = .61*evening;
     if (props.packet.visible) props.path.getPoint(motion.matches ? .72 : (time*.48)%1, props.packet.position);
     const actor = options.actor.current;
-    props.phoneDisplay.map=props.screens[actor.onCall || options.portal?.current.progress>0 ? 1 : 0];
+    props.phoneDisplay.map=props.screens[actor.sharedInterest || options.portal?.current.progress>0 ? 1 : 0];
     props.grandma.update(phase,time,motion.matches,actor);
     // Switch owners in this render tick; the browser never composites two tablet bodies or two inscriptions.
     const meshOwnsPad=portal.progress<HANDOFF;
@@ -379,6 +381,7 @@ export function mountRoom(host, options = {}) {
     const bubble = options.bubble.current;
     if (bubble && !bubble.hidden) {
       if (actor.speaker === '할머니') props.grandma.head.localToWorld(projected.set(0,.08,.23));
+      else if (actor.ringing) props.grandma.handset.localToWorld(projected.set(0,.075,0));
       else if (actor.speaker === '생활 소리') projected.copy(actor.place === 2 ? pinPositions[1] : impactSpot);
       else projected.copy(actor.place === 3 ? pinPositions[2] : actor.place === 2 ? kitchenSpeaker : pinPositions[0]);
       projected.project(camera);

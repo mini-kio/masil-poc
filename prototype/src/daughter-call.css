@@ -1,0 +1,32 @@
+.daughter-call {
+  --avatar:clamp(115px,12vw,172px);
+  display:grid; grid-template-columns:var(--avatar) minmax(0,1fr); align-items:center;
+  gap:clamp(12px,1.25vw,20px); margin:clamp(18px,3svh,30px) 0 0; max-width:510px;
+}
+.daughter-avatar { width:var(--avatar); height:var(--avatar); position:relative; }
+.daughter-crop { width:100%; height:100%; display:grid; place-items:center; overflow:hidden; border-radius:50%; border:3px solid #f8e5c9; background:#c9c4aa; box-shadow:0 5px 15px #251d2c32; }
+.daughter-crop canvas { display:block; grid-area:1/1; width:100%; height:100%; }
+.daughter-crop[data-render="fallback"]::before { content:"딸"; grid-area:1/1; font-weight:700; color:#5e473a; }
+.daughter-crop[data-render="fallback"] canvas { visibility:hidden; }
+.daughter-notice {
+  position:absolute; top:-3px; right:0; display:grid; place-items:center; width:30px; height:30px;
+  border-radius:50% 50% 50% 4px; border:2px solid #5b3b3c; background:#ffd582; color:#55382a;
+  font:800 21px/1 system-ui,sans-serif; animation:daughter-notice .35s ease-out both;
+}
+@keyframes daughter-notice { from { opacity:0; transform:translateY(5px) scale(.74); } to { opacity:1; transform:none; } }
+.daughter-caption { position:relative; border-radius:15px; background:#fff4df; color:#482f38; padding:10px 15px 12px; box-shadow:0 5px 18px #231b292b; }
+.daughter-caption::before { content:""; position:absolute; left:-8px; top:38%; width:10px; height:12px; background:inherit; clip-path:polygon(100% 0,100% 100%,0 68%); }
+.daughter-caption small { display:block; font-size:.79rem; line-height:1.35; color:#785251; font-weight:680; }
+.daughter-caption p { margin:4px 0 0; font-weight:650; line-height:1.46; font-size:clamp(.96rem,1.25vw,1.17rem); letter-spacing:-.02em; }
+.daughter-call[data-call-stage="dialing"] .daughter-caption small,
+.daughter-call[data-call-stage="answered"] .daughter-caption small { color:#48624c; }
+.daughter-call-small { --avatar:64px; gap:9px; margin:8px 0 0; }
+.daughter-call-small .daughter-caption { background:#f2eddf; box-shadow:none; padding:7px 9px; border-radius:11px; }
+.daughter-call-small .daughter-caption p { font-size:.89rem; }
+.daughter-call-small .daughter-notice { width:23px; height:23px; font-size:16px; }
+@media(max-width:800px) {
+  .story-caption .daughter-call { --avatar:clamp(73px,23vw,104px); margin-top:10px; gap:11px; }
+  .story-caption .daughter-caption { padding:7px 11px 9px; }
+  .story-caption .daughter-caption p { font-size:.94rem; line-height:1.35; }
+  .story-caption .daughter-notice { width:23px; height:23px; font-size:16px; }
+}
