@@ -241,6 +241,11 @@ export function mountRoom(host, options = {}) {
   renderer.toneMappingExposure = 1.36;
   host.append(renderer.domElement);
   const portal=options.portal.current;
+  const matte=document.createElement('canvas');
+  matte.width=256; matte.height=166;
+  const shape=matte.getContext('2d');
+  shape.fillStyle='#fff'; shape.beginPath(); shape.roundRect(0,0,256,166,11); shape.fill();
+  host.style.setProperty('--pad-matte','url('+matte.toDataURL()+')');
 
   const scene = new THREE.Scene();
   const sky = new THREE.HemisphereLight('#fff3d8', '#81725f', 1.95);
@@ -402,10 +407,13 @@ export function mountRoom(host, options = {}) {
         l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);
       }
       portal.source={x:(l+r)/2,y:(t+b)/2,w:r-l,h:b-t};
-      const crop=easeBetween(portal.progress,.266,.328);
-      const edges=[ty,host.clientWidth-rx,host.clientHeight-by,lx].map(n=>(Math.max(0,n)*crop).toFixed(2)+'px').join(' ');
-      host.style.clipPath=crop ? 'inset('+edges+' round '+((rx-lx)*.042*crop).toFixed(2)+'px)' : '';
-    } else if(!portal.progress) host.style.clipPath='';
+      // Dissolve the whole room around the tablet instead of shrinking a second rectangular frame around it.
+      const isolation=easeBetween(portal.progress,.252,.328);
+      host.classList.toggle('isolate-pad',isolation>0);
+      host.style.setProperty('--surround-alpha',1-isolation);
+      host.style.setProperty('--pad-mask-size',Math.max(0,rx-lx-1)+'px '+Math.max(0,by-ty-1)+'px');
+      host.style.setProperty('--pad-mask-position',(lx+.5)+'px '+(ty+.5)+'px');
+    } else if(!portal.progress) host.classList.remove('isolate-pad');
     if(portal.progress>0) portal.paint();
     if (phase < .9 && options.pins) {
       pinPositions.forEach((world, i) => {
