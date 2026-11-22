@@ -1,92 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-
-const base = import.meta.env.BASE_URL;
-const devices = [
-  { id:'tablet', label:'태블릿', x:.204, y:.55, title:'태블릿을 식탁에 세워요.',
-    text:'집에 있는 태블릿에서 마실 웹앱을 열고 마이크를 켜요. 할머니와 함께 아침 인사를 나눌 시간을 골라요.' },
-  { id:'speaker', label:'DIY 스피커', x:.505, y:.65, title:'스피커로 시작해도 좋아요.',
-    text:'태블릿 대신 쓰던 스피커를 활용할 수도 있어요. 라즈베리파이에 USB 마이크와 스피커를 연결하면 한쪽은 귀가, 다른 쪽은 목소리가 돼요.' },
-  { id:'phone', label:'가족 휴대폰', x:.781, y:.53, title:'첫 안부가 도착했는지 살펴요.',
-    text:'가족 휴대폰에서 집 기기를 연결하고 함께 안부를 시험해요. 할머니가 전해도 좋다고 하신 한 문장이 가족 화면에 도착하면 준비가 끝나요.' },
-];
-const plainSetup = '(prefers-reduced-motion: reduce), (max-height: 620px), (max-width: 350px) and (max-height: 740px)';
-const clamp = (value,low,high) => Math.max(low,Math.min(high,value));
-const mix = (a,b,t) => a+(b-a)*t;
-
-function Installation() {
-  const picture = useRef(null), photo = useRef(null);
-  const stops = useRef([]);
-  const [active,setActive] = useState(0);
-  const [plain,setPlain] = useState(() => matchMedia(plainSetup).matches);
-  useEffect(() => {
-    const preference=matchMedia(plainSetup);
-    const change=() => setPlain(preference.matches);
-    preference.addEventListener('change',change);
-    return () => preference.removeEventListener('change',change);
-  },[]);
-  useEffect(() => {
-    if (plain) return;
-    let frame=0;
-    function position() {
-      frame=0;
-      const header=document.querySelector('.masthead').offsetHeight;
-      const sections=stops.current;
-      const y=header+3;
-      const top=sections.map(s=>s.getBoundingClientRect().top);
-      let i=0;
-      while (i+1<top.length && top[i+1]<=y) i++;
-      const f=clamp((y-top[i])/Math.max(1,(top[i+1]??top[i]+sections[i].offsetHeight)-top[i]),0,1);
-      const raw=clamp((f-.40)/.60,0,1);
-      const drift=raw*raw*(3-2*raw);
-      const here=devices[i], next=devices[Math.min(i+1,devices.length-1)];
-      const x=mix(here.x,next.x,drift), focusY=mix(here.y,next.y,drift);
-      const box=picture.current, width=box.clientWidth, height=box.clientHeight;
-      if (!width || !height) return;
-      const zoom=width<640?1.07:1.32;
-      const w=Math.max(width,height*3)*zoom, h=w/3;
-      const tx=clamp(width*.5-x*w,width-w,0), ty=clamp(height*.57-focusY*h,height-h,0);
-      photo.current.style.width=w.toFixed(1)+'px';
-      photo.current.style.transform='translate('+tx.toFixed(1)+'px,'+ty.toFixed(1)+'px)';
-      box.style.setProperty('--focus-x',(tx+here.x*w).toFixed(1)+'px');
-      box.style.setProperty('--focus-y',(ty+here.y*h).toFixed(1)+'px');
-      setActive(i);
-    }
-    const schedule=()=>{if(!frame)frame=requestAnimationFrame(position);};
-    const size=new ResizeObserver(schedule);
-    size.observe(picture.current);
-    position();
-    window.addEventListener('scroll',schedule,{passive:true});
-    window.addEventListener('resize',schedule,{passive:true});
-    return ()=>{size.disconnect();cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);};
-  },[plain]);
-  const step=devices[active];
-  return <div className={'setup-walk'+(plain?' setup-plain':'')} data-device={plain?'all':step.id}>
-    {!plain && <div className="setup-track" aria-hidden="true">
-      {devices.map((d,i)=><div className="setup-stop" id={'setup-'+d.id} key={d.id} ref={n=>{stops.current[i]=n;}}/>)}
-    </div>}
-    <div className="setup-stage">
-      <header className="wrap setup-intro">
-        <h2 id="setup-title">식탁에서 <em>가족의 손안까지</em></h2>
-        <p>할머니 댁에 마실을 놓는다면, <br/>우리 집에는 어떤 기기가 어울릴까요?</p>
-      </header>
-      <figure className="setup-photo" ref={picture} aria-label="식탁 위의 태블릿, USB 마이크와 라즈베리파이, 스피커, 가족 휴대폰 설치 예시">
-        <img src={base+'masil-install.webp'} ref={photo} width="1920" height="640" loading="lazy" alt="햇빛이 드는 식탁 위에 놓인 두 가지 기기 구성과 가족 휴대폰"/>
-        {!plain && <span className="focus-mark" aria-hidden="true" key={step.id}/>}
-      </figure>
-      {plain ? <ol className="wrap all-setups">{devices.map(d=><li key={d.id} id={'setup-'+d.id}><h3>{d.title}</h3><p>{d.text}</p></li>)}</ol>
-        : <div className="wrap setup-caption">
-          <nav aria-label="설치할 기기 보기">{devices.map((d,i)=><a key={d.id} href={'#setup-'+d.id} aria-current={i===active?'step':undefined}>{d.label}</a>)}</nav>
-          <div className="setup-words" key={step.id}><h3>{step.title}</h3><p>{step.text}</p></div>
-        </div>}
-    </div>
-  </div>;
-}
+import React from 'react';
 
 export function Workshop() {
-  return <section className="installation" id="roadmap" aria-labelledby="setup-title">
-    <Installation/>
+  return <section className="installation" aria-label="개발 방법 자세히">
     <div className="wrap development">
-      <h3>어떻게 만들까요?</h3>
+      <h3>개발 계획 자세히</h3>
       <div>
         <details><summary>집 기기와 가족 앱 연결</summary>
           <p>태블릿 웹앱(PWA)과 Pi가 운영 서버에 먼저 HTTPS·WebSocket으로 접속하고, 서버가 등록된 가족에게 소식과 승인 요청을 전달해요. 집 공유기에서 포트를 열 필요가 없어요. 자가 호스팅을 선택하면 집 서버가 인증된 리버스 터널로 연결돼요.</p>

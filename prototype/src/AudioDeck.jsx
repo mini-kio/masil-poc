@@ -27,7 +27,7 @@ export function useVoice() {
     interrupt();
   }, [interrupt, stop]);
 
-  const play = useCallback((files, from = 0) => {
+  const play = useCallback((files, from = 0, onPartEnd) => {
     if (stopCurrentPlayer && stopCurrentPlayer !== stop) stopCurrentPlayer();
     stopCurrentPlayer = stop;
     interrupt();
@@ -63,6 +63,7 @@ export function useVoice() {
       audio.onended = () => {
         if (!active()) return;
         accumulated += duration(files[index++]) || audio.duration || 0;
+        if (onPartEnd?.()) return;
         if (index < files.length) loadPart(0);
         else setState({ playing: false, elapsed: indexed ? full : accumulated, error: false });
       };

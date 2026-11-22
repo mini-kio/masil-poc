@@ -12,32 +12,24 @@ const shots = [
   { aim: [1.47, 1.40, -2.05], yaw: -.13, elevation: .28, zoom: 2.81, sun: '#f2ddbf', sky: '#e0e4cf', power: 1.92 },
   { aim: [.86, 1.10, .70], yaw: -.23, elevation: .36, zoom: 2.53, sun: '#ffb78c', sky: '#ded0d0', power: 1.48 },
   { aim: [.90, 1.24, .58], yaw: .25, elevation: .27, zoom: 2.85, sun: '#ffa478', sky: '#cebdd5', power: 1.18 },
+  { aim:[.392,1.28,1.355], yaw:.28,elevation:.09,zoom:6.0,sun:'#ffc497',sky:'#d5c8c0',power:1.48 },
+  { aim:[.392,1.28,1.355], yaw:.28,elevation:.014,zoom:23.0,sun:'#ffdab2',sky:'#f2e7d3',power:1.54 },
 ].map(shot => ({ ...shot, aim: new THREE.Vector3(...shot.aim), sun: new THREE.Color(shot.sun), sky: new THREE.Color(shot.sky) }));
 
 function surface(color, roughness = .82) {
   return new THREE.MeshStandardMaterial({ color, roughness });
 }
 
-function getTabletTexture(brand) {
+function getTabletTexture(shared) {
   const canvas = document.createElement('canvas');
-  canvas.width = 320;
-  canvas.height = 460;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fcf8ed';
-  ctx.fillRect(0, 0, 320, 460);
-  ctx.fillStyle = '#30382c';
-  ctx.font = 'bold 45px sans-serif';
-  ctx.fillText(brand, 28, 80);
-  ctx.fillStyle = '#e6ead8';
-  ctx.fillRect(28, 109, 264, 121);
-  ctx.fillStyle = '#60745b';
-  ctx.fillRect(48, 146, 103, 9);
-  ctx.fillRect(48, 179, 185, 8);
-  ctx.fillStyle = '#ccb39a';
-  ctx.fillRect(28, 254, 264, 99);
-  ctx.fillStyle = '#f9f5e6';
-  ctx.fillRect(48, 286, 122, 8);
-  ctx.fillRect(48, 313, 178, 8);
+  canvas.width=768; canvas.height=480;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#f8f1df'; ctx.fillRect(0,0,768,480);
+  ctx.fillStyle='#294537'; ctx.font='bold 34px sans-serif'; ctx.fillText('마실 패드',44,66);
+  ctx.fillStyle='#57745e'; ctx.font='25px sans-serif'; ctx.fillText(shared?'가족에게 전한 한마디':'어르신 화면',44,155);
+  ctx.fillStyle='#263e30'; ctx.font='bold 49px serif';
+  ctx.fillText(shared?'“담에 오면 내하고':'할머니,',44,235); ctx.fillText(shared?'같이 보자 캐라.”':'듣고 있어요.',44,303);
+  ctx.fillStyle='#506456'; ctx.font='25px sans-serif'; ctx.fillText(shared?'할머니가 허락하신 드라마 이야기':'마실과 나누는 대화',44,399);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
@@ -142,9 +134,10 @@ function buildRoom(scene) {
   group.add(phone);
   phone.position.set(.37, .955, 1.29);
   phone.rotation.y = .28;
-  box(0, .323, 0, .53, .65, .105, mat.dark, .047, phone);
-  const phoneDisplay = new THREE.MeshBasicMaterial({ map: getTabletTexture('마실') });
-  mesh(new THREE.PlaneGeometry(.445, .55), phoneDisplay, 0, .322, .057, phone);
+  box(0, .323, 0, .98, .635, .095, mat.dark, .042, phone);
+  const screens=[getTabletTexture(false),getTabletTexture(true)];
+  const phoneDisplay=new THREE.MeshBasicMaterial({map:screens[0],toneMapped:false});
+  mesh(new THREE.PlaneGeometry(.926, .579), phoneDisplay, 0, .322, .049, phone);
   for (const z of [2.02, .03]) {
     box(1.34, .476, z, .58, .12, .56, mat.cream, .055);
     for (const x of [1.11, 1.57]) for (const zz of [z - .19, z + .19]) box(x, .278, zz, .064, .37, .065, mat.walnut, .017);
@@ -180,11 +173,11 @@ function buildRoom(scene) {
     return p;
   });
   const lampShade = new THREE.MeshStandardMaterial({ color: '#ebd5a5', emissive: '#ffaa51', emissiveIntensity: .1, roughness: .8 });
-  cylinder(1.65, .98, .68, .19, .22, .055, mat.walnut);
-  cylinder(1.65, 1.23, .68, .033, .044, .50, mat.metal);
-  cylinder(1.65, 1.51, .68, .14, .28, .30, lampShade);
+  cylinder(-.13, .98, .58, .19, .22, .055, mat.walnut);
+  cylinder(-.13, 1.23, .58, .033, .044, .50, mat.metal);
+  cylinder(-.13, 1.51, .58, .14, .28, .30, lampShade);
   const lampLight = new THREE.PointLight('#ffc07e', 0, 6, 2);
-  lampLight.position.set(1.65, 1.46, .72);
+  lampLight.position.set(-.13, 1.46, .62);
   scene.add(lampLight);
 
   box(-3.9, 1.68, -3.54, .72, .79, .08, mat.walnut, .025);
@@ -239,7 +232,7 @@ function buildRoom(scene) {
     return ring;
   });
   const grandma = seatGrandmother(group);
-  return { grandma, pulses, steam, speakerGlow, lampShade, lampLight, sunshine, sunMaterial, trail, packet, path, soundRings };
+  return { grandma, pad:phone, phoneDisplay, screens, pulses, steam, speakerGlow, lampShade, lampLight, sunshine, sunMaterial, trail, packet, path, soundRings };
 }
 
 export function mountRoom(host, options = {}) {
@@ -282,6 +275,7 @@ export function mountRoom(host, options = {}) {
   const pinPositions = [new THREE.Vector3(-2.44,1.04,1.02), new THREE.Vector3(2.55,1.80,-2.58), new THREE.Vector3(.37,1.68,1.29)];
   const projected = new THREE.Vector3();
   const face = new THREE.Vector3();
+  const corners = [[-.49,.005],[.49,.005],[-.49,.640],[.49,.640]].map(([x,y])=>new THREE.Vector3(x,y,.05));
   const kitchenSpeaker = new THREE.Vector3(.48,1.28,-2.32);
   const impactSpot = new THREE.Vector3(-1.85,.19,.10);
   let goal = options.initialProgress ?? 0;
@@ -358,6 +352,7 @@ export function mountRoom(host, options = {}) {
     props.trail.material.opacity = .61*evening;
     if (props.packet.visible) props.path.getPoint(motion.matches ? .72 : (time*.48)%1, props.packet.position);
     const actor = options.actor.current;
+    props.phoneDisplay.map=props.screens[actor.onCall || options.portal?.current.progress>0 ? 1 : 0];
     props.grandma.update(phase,time,motion.matches,actor);
     renderer.render(scene, camera);
     const bubble = options.bubble.current;
@@ -383,6 +378,21 @@ export function mountRoom(host, options = {}) {
       bubble.style.transform = 'translate('+Math.round(left)+'px,'+Math.round(top)+'px)';
       bubble.style.setProperty('--beak',clamp(x-left,18,bw-18).toFixed(1)+'px');
     }
+    if (options.portal?.current.progress > 0 && options.portal.current.progress < .52) {
+      const rect=host.getBoundingClientRect();
+      const matrix=new DOMMatrixReadOnly(getComputedStyle(host).transform==='none'?undefined:getComputedStyle(host).transform);
+      const centerX=rect.left+rect.width/2, centerY=rect.top+rect.height/2;
+      let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
+      for (const corner of corners) {
+        props.pad.localToWorld(projected.copy(corner)).project(camera);
+        const dx=projected.x*.5*host.clientWidth, dy=-projected.y*.5*host.clientHeight;
+        const x=centerX+matrix.a*dx+matrix.c*dy, y=centerY+matrix.b*dx+matrix.d*dy;
+        l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);
+      }
+      const portal=options.portal.current;
+      portal.source={x:(l+r)/2,y:(t+b)/2,w:r-l,h:b-t};
+      portal.paint();
+    }
     if (phase < .9 && options.pins) {
       pinPositions.forEach((world, i) => {
         const el = options.pins[i];
@@ -392,7 +402,7 @@ export function mountRoom(host, options = {}) {
         el.style.top = (.5 - projected.y*.5)*100+'%';
       });
     }
-    if (!motion.matches) wake();
+    if (!motion.matches && (options.portal.current.progress < .52 || Math.abs(goal-progress)>.002)) wake();
   }
 
   function wake() {
@@ -468,6 +478,7 @@ export function mountRoom(host, options = {}) {
           object.material.dispose();
         }
       });
+      for (const texture of props.screens) texture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

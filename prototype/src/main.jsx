@@ -7,6 +7,7 @@ import './styles.css';
 import './story.css';
 import './console.css';
 import './sections.css';
+import './devices.css';
 
 const asset = name => import.meta.env.BASE_URL + name;
 const navigation = [['experience', '시연'], ['roadmap', '설치와 개발'], ['comparison', '서비스 비교']];
@@ -50,6 +51,7 @@ function App() {
     <Header />
     <main>
       <Story />
+      <Workshop />
       <section className="practice-region" id="choices" aria-label="선택 시연">
         <div className="wrap practice-gate">
           <p>할머니의 답이 달라지면 가족에게 어떤 소식이 갈까요?</p>
@@ -58,7 +60,7 @@ function App() {
         </div>
         <div id="choice-demo" hidden={!choicesOpen}>{choicesOpen && <Demo initialCase="compare" />}</div>
       </section>
-      <Workshop /><Comparison />
+      <Comparison />
     </main>
     <footer><div className="wrap footer-inner">
       <a className="brand" href="#top"><img src={asset('masil-logo.webp')} alt="마실" width="330" height="144" /></a>

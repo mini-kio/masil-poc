@@ -152,12 +152,12 @@ export const scenarios = {
     ordered: {
       lines: [elder('그래, 그거 하나 시키도.', 'confirm-rice.mp3'), masil('네, 정해둔 한도 안이라 집으로 보내드리도록 주문했어요.', 'voice-auto-ordered.mp3')],
       clue: rice.one + ' · 사전 허용 품목', decision: '어르신 확인으로 모의 주문 한 건을 만들어요.',
-      family: { label: '주문 완료', text: rice.one, actions: [action('도착한 상황 보기', 'arrived')] },
+      family: { label: '주문 완료', text: rice.one, actions: [action('도착한 상황 보기', 'arrived'), action('배송 전 취소', 'cancel')] },
     },
     approved: {
       lines: [masil('가족이 확인해주셔서 주문이 접수됐어요.', 'voice-family-approved.mp3')],
       clue: rice.two + ' · 가족 승인', decision: '가족이 확인한 주문 한 건을 모의 접수해요.',
-      family: { label: '주문 완료', text: rice.two, actions: [action('도착한 상황 보기', 'arrived')] },
+      family: { label: '주문 완료', text: rice.two, actions: [action('도착한 상황 보기', 'arrived'), action('배송 전 취소', 'cancel')] },
     },
     tell: {
       lines: [masil('아드님께 쌀이 얼마 안 남았다고 전해드릴까요?')],
@@ -191,6 +191,7 @@ export const scenarios = {
     cancel: {
       lines: [masil('네, 이번 주문을 취소했어요.', 'voice-canceled.mp3')],
       clue: '어르신 또는 가족이 중지를 선택함', decision: '이 장면의 주문 절차를 닫아요.',
+      family: { label:'주문 취소', text:'이번 쌀 주문은 취소되었어요.' },
     },
   },
   interest: {
@@ -212,7 +213,7 @@ export const scenarios = {
       family: { label: '다음 통화 이야기', text: '요즘 저녁마다 《동백꽃 필 무렵》을 보신대요.', actions: [action('다음 가족 통화 보기', 'nextCall')] },
     },
     nextCall: {
-      lines: [{ speaker: '딸', text: '엄마, 그 드라마는 누가 제일 마음에 들어?' }, elder('나는 동백이가 제일 마음에 든다. 다음에 오면 같이 보자.')],
+      lines: [{ speaker: '딸', text: '엄마, 그 드라마는 누가 제일 마음에 들어?', audio:'day-daughter.mp3' }, elder('나는 동백이가 제일 마음에 든다. 다음에 오면 같이 보자.','day-watch-together.mp3')],
       clue: '어르신이 공유를 허락한 관심사', decision: '가족과 어르신이 그 이야기로 대화를 시작해요.',
       family: { label: '가족 통화 예시', text: '딸이 다음 방문에 드라마를 같이 보기로 했어요.' },
     },

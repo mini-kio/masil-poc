@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { combinePeaks, useVoice } from './AudioDeck.jsx';
 import { cueIndex, day, places } from './day.js';
+import Devices, { easeBetween, paintDevices } from './Devices.jsx';
 
 const asset = name => import.meta.env.BASE_URL + name;
 const compactQuery = '(prefers-reduced-motion: reduce), (max-height: 600px), (max-width: 350px) and (max-height: 715px)';
@@ -33,7 +34,7 @@ function FamilyCard({ beat, cue }) {
   </aside>;
 }
 
-function RoomWorld({ controller, position, actor, reading, cue, linear }) {
+function RoomWorld({ controller, position, actor, reading, dialogueBeat, cue, linear, portal }) {
   const host = useRef(null);
   const pins = useRef([]);
   const bubble = useRef(null);
@@ -44,7 +45,7 @@ function RoomWorld({ controller, position, actor, reading, cue, linear }) {
     import('./room.js').then(({ mountRoom }) => {
       if (closed) return;
       controller.current = mountRoom(host.current, {
-        pins: pins.current, bubble, actor,
+        pins: pins.current, bubble, actor, portal,
         initialProgress: position.current,
         onLost: () => { if (!closed) setStatus('fallback'); },
         onRestored: () => { if (!closed) setStatus('ready'); },
@@ -56,7 +57,7 @@ function RoomWorld({ controller, position, actor, reading, cue, linear }) {
       controller.current?.dispose();
       controller.current = null;
     };
-  }, [controller, position, actor]);
+  }, [controller, position, actor, portal]);
   useEffect(() => { controller.current?.refresh(); }, [reading.index, cue, linear, controller]);
   return <div className="room-world" data-room={status}>
     <div className="room-light" aria-hidden="true" />
@@ -66,8 +67,8 @@ function RoomWorld({ controller, position, actor, reading, cue, linear }) {
       hidden={reading.index !== 0 || status !== 'ready'} href={'#'+place.id} aria-label={place.object+' 장면 보기'}>
       <i aria-hidden="true"/><span>{place.object}</span>
     </a>)}
-    <Bubble bubble={bubble} beat={beat} cue={cue} visible={!linear && reading.index>0} />
-    {!linear && beat.place===3 && <FamilyCard beat={beat} cue={cue}/>}
+    <Bubble bubble={bubble} beat={dialogueBeat} cue={cue} visible={!linear && !reading.bridge && (reading.index>0 || reading.wakeShown || actor.current.audio)} />
+    {!linear && !reading.bridge && beat.place===3 && <FamilyCard beat={beat} cue={dialogueBeat===beat?cue:0}/>}
   </div>;
 }
 
@@ -77,7 +78,10 @@ export default function Story() {
   const controller = useRef(null);
   const position = useRef(0);
   const actor = useRef({});
-  const lastPlayed = useRef(-1);
+  const layer=useRef(null), portal=useRef({progress:0,source:null,paint:null});
+  portal.current.paint=()=>paintDevices(layer.current,portal.current.progress,portal.current.source);
+  const lastPlayed=useRef(-1), desired=useRef(-1);
+  const [spoken,setSpoken]=useState(-1);
   const [reading, setReading] = useState({index:0,cue:0});
   const [linear, setLinear] = useState(() => matchMedia(compactQuery).matches);
   const [soundOn, setSoundOn] = useState(false);
@@ -85,11 +89,13 @@ export default function Story() {
   const voice = useVoice();
   const beat = day[reading.index];
   const place = places[beat.place];
-  const useAudioTime = soundOn && onScreen && !voice.error && lastPlayed.current === reading.index;
-  const cue = useAudioTime ? cueIndex(beat, voice.elapsed) : reading.cue;
+  const useAudioTime=soundOn && onScreen && !voice.error && spoken>=0 && !reading.bridge;
+  const dialogueBeat=useAudioTime ? day[spoken] : beat;
+  const cue=useAudioTime ? cueIndex(dialogueBeat,voice.elapsed) : reading.cue;
+  desired.current=soundOn && onScreen && !reading.bridge ? reading.index : -1;
 
-  actor.current = {line:beat.id+'-'+cue, speaker:beat.cues[cue].speaker, place:beat.place,
-    audio:useAudioTime && voice.playing, level:voice.level, onCall:beat.id==='family-call' && cue>=3};
+  actor.current={line:dialogueBeat.id+'-'+cue,speaker:dialogueBeat.cues[cue].speaker,place:dialogueBeat.place,
+    audio:useAudioTime && voice.playing,level:voice.level,onCall:dialogueBeat.id==='family-call' && cue>=3};
 
   useEffect(() => {
     const media = matchMedia(compactQuery);
@@ -106,37 +112,44 @@ export default function Story() {
     document.addEventListener('visibilitychange', sync);
     return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); };
   }, []);
-  useEffect(() => {
-    if (!onScreen || !soundOn) {
-      lastPlayed.current = -1;
-      voice.stop();
-      return;
-    }
-    if (lastPlayed.current === reading.index) return;
-    voice.stop();
-    const timer = setTimeout(() => {
-      lastPlayed.current = reading.index;
-      voice.play(beat.files);
-    }, 160);
-    return () => clearTimeout(timer);
-  }, [onScreen, soundOn, reading.index, beat, voice.play, voice.stop]);
+  const startBeat=useCallback(function playBeat(index) {
+    lastPlayed.current=index;
+    setSpoken(index);
+    voice.play(day[index].files,0,()=>{
+      const next=desired.current;
+      if (next===index) return false;
+      if (next>=0) playBeat(next);
+      else { lastPlayed.current=-1; setSpoken(-1); voice.stop(); }
+      return true;
+    });
+  },[voice.play,voice.stop]);
+  useEffect(()=>{
+    const next=desired.current;
+    if (lastPlayed.current===next) return;
+    if (next<0) { lastPlayed.current=-1; setSpoken(-1); voice.stop(); return; }
+    // On a normal forward scroll, finish the current sentence before entering the next room.
+    if (voice.playing && next===lastPlayed.current+1 && lastPlayed.current>=0) return;
+    const timer=setTimeout(()=>startBeat(next),120);
+    return ()=>clearTimeout(timer);
+  },[reading.index,reading.bridge,soundOn,onScreen,voice.playing,voice.stop,startBeat]);
   useEffect(() => { controller.current?.listening(voice.playing); }, [voice.playing]);
-  const impact = Boolean(beat.cues[cue]?.impact);
+  const impact = Boolean(dialogueBeat.cues[cue]?.impact);
   useEffect(() => { controller.current?.impact(impact); }, [impact]);
 
   function toggleSound() {
     if (soundOn && !voice.error) {
+      desired.current=-1;
       setSoundOn(false);
       voice.stop();
     } else {
       setSoundOn(true);
-      lastPlayed.current = reading.index;
-      voice.play(beat.files);
+      desired.current=reading.index;
+      startBeat(reading.index);
     }
   }
 
   useEffect(() => {
-    const stops = [...root.current.querySelectorAll(linear ? '.story-caption' : '.chapter-stop')];
+    const stops = [...root.current.querySelectorAll(linear ? '.story-caption, .devices-linear' : '.chapter-stop')];
     let frame = 0;
     function read() {
       frame = 0;
@@ -148,15 +161,24 @@ export default function Story() {
       const length = i + 1 < stops.length ? tops[i+1]-tops[i]
         : stops[i].offsetHeight - (linear ? 0 : stage.current.offsetHeight);
       const fraction = bound((line-tops[i]) / Math.max(1,length));
-      const travel = fraction < .67 ? .14*fraction/.67 : .14 + .86*(fraction-.67)/.33;
-      position.current = Math.min(day.length-1, i+travel);
+      const bridge=i===day.length;
+      const active=Math.min(day.length-1,i);
+      const travel=fraction<.67?.14*fraction/.67:.14+.86*(fraction-.67)/.33;
+      const progress=linear ? 0 : bridge ? .105+.895*fraction : active===day.length-1 ? .105*easeBetween(fraction,.91,1) : 0;
+      portal.current.progress=progress;
+      if (!progress) portal.current.source=null;
+      portal.current.paint();
+      position.current=progress ? 8+2*easeBetween(progress,0,.52) : Math.min(day.length-1,active+travel);
       controller.current?.setProgress(position.current);
-      const group = day[i].place;
-      const groupLength = (roomStarts[group+1] ?? day.length) - roomStarts[group];
-      stage.current.style.setProperty('--journey',(group + (i - roomStarts[group] + fraction)/groupLength) / places.length);
-      stage.current.style.setProperty('--moment-fill',(fraction*100).toFixed(2)+'%');
-      const nextCue = cueIndex(day[i],fraction*day[i].seconds);
-      setReading(previous => previous.index===i && previous.cue===nextCue ? previous : {index:i,cue:nextCue});
+      stage.current.dataset.transition=String(progress>0);
+      stage.current.style.setProperty('--story-out',1-easeBetween(progress,0,.10));
+      stage.current.style.setProperty('--room-out',1-easeBetween(progress,.28,.51));
+      const group=day[active].place;
+      const groupLength=(roomStarts[group+1]??day.length)-roomStarts[group];
+      stage.current.style.setProperty('--journey',(group+(active-roomStarts[group]+fraction)/groupLength)/places.length);
+      const nextCue=cueIndex(day[active],(bridge?1:fraction)*day[active].seconds);
+      const wakeShown=active===0 && fraction>.28;
+      setReading(previous=>previous.index===active && previous.cue===nextCue && previous.bridge===bridge && previous.wakeShown===wakeShown ? previous : {index:active,cue:nextCue,bridge,wakeShown});
     }
     function schedule() { if (!frame) frame=requestAnimationFrame(read); }
     read();
@@ -176,28 +198,32 @@ export default function Story() {
       {day.map(b => <div id={b.id} key={b.id} className="chapter-stop" style={{'--run': b.run+'svh'}}>
         {b.id === 'morning-meal' && <span id="experience" className="story-alias" />}
       </div>)}
+      <div className="chapter-stop device-stop" id="roadmap" />
     </div>}
     <div className="reel-stage" ref={stage} data-chapter={place.id} data-beat={beat.id}>
       <div className="reel-atmosphere" aria-hidden="true"><div/><div/></div>
       <div className="wrap reel-layout">
-        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} cue={cue} linear={linear}/>
+        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} dialogueBeat={dialogueBeat} cue={cue} linear={linear} portal={portal}/>
         {day.map((b,i) => {
           const Heading=i===0?'h1':'h2';
           return <article className="story-caption" key={b.id} id={linear ? b.id : undefined}
-            data-id={places[b.place].id} hidden={!linear && reading.index!==i}>
+            data-id={places[b.place].id} aria-hidden={!linear && reading.bridge ? true : undefined} hidden={!linear && reading.index!==i}>
             {linear && b.id==='morning-meal' && <span id="experience" className="story-alias"/>}
             <p className="scene-topic"><span/>{b.topic}<time className="small-scene-time">{places[b.place].time}</time></p>
             <Heading>{b.title.map((line,j)=><span className="title-mask" key={line}><span style={{'--line-delay':j*50+'ms'}}>{line}</span></span>)}</Heading>
             <p className="scene-description">{b.body}</p>
-            {!i && <a className="scroll-invite" href="#morning"><i aria-hidden="true"/>스크롤로 하루 따라가기</a>}
-            {linear && i>0 && <div className="plain-cues">
+            {!i && <a className="scroll-invite" href="#morning" onClick={()=>{
+              if(!soundOn) { desired.current=0; setSoundOn(true); startBeat(0); }
+            }}><i aria-hidden="true"/>소리와 함께 하루 따라가기</a>}
+            {linear && <div className="plain-cues">
               {b.cues.map((c,j)=><p key={j}><b>{c.speaker}</b>{c.text}</p>)}
             </div>}
           </article>;
         })}
         <div className="scene-clock" aria-hidden="true"><i/>{place.object}<span>{place.time}</span></div>
       </div>
-      <div className="wrap reel-controls">
+      {!linear && <Devices layer={layer} linear={false}/>}
+      <div className="wrap reel-controls" inert={!linear && reading.bridge ? true : undefined}>
         <nav className="chapter-nav" aria-label="하루의 장면 이동">
           {places.map((p,i)=><a key={p.id} href={'#'+p.id} aria-current={i===beat.place?'step':undefined}><i aria-hidden="true"/><span>{p.nav}</span></a>)}
         </nav>
@@ -206,5 +232,6 @@ export default function Story() {
         </button>
       </div>
     </div>
+    {linear && <Devices linear/>}
   </section>;
 }

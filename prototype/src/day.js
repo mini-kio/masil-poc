@@ -1,70 +1,70 @@
 import waveforms from './waveforms.json';
 
-const length = file => waveforms[file]?.seconds ?? 0;
-const line = (file, speaker, text) => ({ file, speaker, text });
+const line = (file,speaker,text,impact=false) => ({file,speaker,text,impact});
 function dialogue(...lines) {
-  let time = 0;
-  const cues = lines.map(({ file, speaker, text }) => {
-    const cue = { at: time, speaker, text };
-    time += length(file);
+  let seconds=0;
+  const cues=lines.map(({file,speaker,text,impact})=>{
+    const cue={at:seconds,speaker,text,impact};
+    seconds+=waveforms[file]?.seconds??0;
     return cue;
   });
-  return { files: lines.map(l => l.file), cues, seconds: time };
+  return {files:lines.map(l=>l.file),cues,seconds};
 }
-
-function sameWords(impact) {
-  const file = impact ? 'same-impact.mp3' : 'same-calm.mp3';
-  const end = length('check-food.mp3');
-  const follow = impact ? 'check-impact.mp3' : 'follow-food.mp3';
-  const last = impact ? '방금 쿵 소리가 났는데, 어디 부딪히셨어요?' : '다음에도 이 반찬 가져다 달라고 할까요?';
-  const cues = [
-    { at: 0, speaker: '마실', text: '할머니, 따님이 가져다주신 반찬은 입에 맞으셨어요?' },
-    ...(impact ? [{ at: end + .20, speaker: '생활 소리', text: '가까운 곳에서 들린 쿵 소리', impact: true }] : []),
-    { at: end + .89, speaker: '할머니', text: '괜찮다.' },
-    { at: length(file), speaker: '마실', text: last },
-  ];
-  return { files: [file,follow], seconds: length(file) + length(follow), cues };
-}
-
 export const places = [
-  { id: 'home', nav: '집 전체', object: '할머니 댁', time: '오전 9시' },
-  { id: 'morning', nav: '거실', object: '거실 스피커', time: '오전 9시' },
-  { id: 'kitchen', nav: '부엌', object: '부엌 주전자', time: '오전 10시' },
-  { id: 'family', nav: '가족', object: '가족 휴대폰', time: '저녁 7시' },
+  { id:'home',nav:'집 전체',object:'할머니 댁',time:'오전 9시' },
+  { id:'morning',nav:'거실',object:'거실 스피커',time:'오전 9시' },
+  { id:'kitchen',nav:'부엌',object:'부엌 주전자',time:'오전 10시' },
+  { id:'family',nav:'가족',object:'저녁 식탁',time:'저녁 7시' },
 ];
-
 export const day = [
-  { id: 'home', place: 0, run: 76, topic: '어르신을 위한 AI 생활 도우미', title: ['말과 생활 소리를','함께 듣는 마실'],
-    body: '할머니 댁을 천천히 둘러보세요. 아래로 스크롤하면 거실의 아침 인사부터 저녁 가족 통화까지 이어져요.',
-    ...dialogue(line('first-morning.mp3','마실','할머니, 오늘 아침은 어떠세요?')) },
-  { id: 'morning', place: 1, run: 66, topic: '거실에서 시작하는 아침', title: ['“할머니, 오늘','아침은 어떠세요?”'],
-    body: '약속한 시간이 되자 스피커에 불이 들어와요. 할머니가 무릎 이야기를 꺼내자 마실은 가족에게 전해도 될지 먼저 물어요.',
-    ...dialogue(line('first-morning.mp3','마실','할머니, 오늘 아침은 어떠세요?'),line('elder-knee.mp3','할머니','요즘 무릎이 좀 아프다.'),line('ask-health-share.mp3','마실','무릎이 좀 불편하셨군요. 가족에게도 이 얘기 전해드릴까요?')) },
-  { id: 'morning-meal', place: 1, run: 59, topic: '거실의 반찬 이야기', title: ['조용한 거실에서','“괜찮다.”'],
-    body: '딸이 가져다준 반찬 맛을 묻자 평소 말투로 대답하세요. 마실은 다음에도 이 반찬을 부탁할지 여쭤봐요.',
-    ...sameWords(false) },
-  { id: 'morning-impact', place: 1, run: 69, topic: '같은 말에 더해진 소리', title: ['쿵, 소리가 난 뒤','“괜찮다.”'],
-    body: '이번에는 같은 질문 뒤에 쿵 소리가 나고 할머니의 목소리가 작아져요. 마실은 소리가 난 까닭을 한 번 확인해요.',
-    ...sameWords(true) },
-  { id: 'morning-answer', place: 1, run: 52, topic: '할머니가 알려준 상황', title: ['“냄비 뚜껑','떨어뜨렸다.”'],
-    body: '할머니가 직접 설명해 주셨어요. 마실은 반찬 이야기로 돌아가고, 이 장면에서 가족에게 보내는 알림은 0건이에요.',
-    ...dialogue(line('elder-lid.mp3','할머니','냄비 뚜껑 떨어뜨렸다. 내는 괜찮다.')) },
-  { id: 'kitchen', place: 2, run: 69, topic: '부엌의 주전자', title: ['차 한 잔 하신다던','참이었죠.'],
-    body: '차를 준비하겠다는 말 뒤에 물 끓는 소리가 들려요. 마실은 주전자를 보러 가실 동안 잠깐 기다릴지 물어요.',
-    ...dialogue(line('sound-kettle.mp3','생활 소리','물이 끓는 듯한 소리'),line('check-kettle.mp3','마실','아까 차 드신다고 하셨죠. 물 보러 가실 동안 이야기 잠깐 멈출까요?')) },
-  { id: 'kitchen-rice', place: 2, run: 72, topic: '쌀통 앞에서', title: ['“마실아, 집에 쌀이','다 떨어져 간다.”'],
-    body: '지난번 쌀 한 봉지는 배송비까지 18,900원이에요. 할머니가 상품과 수량을 직접 확인한 뒤에야 정해 둔 한도 안에서 모의 주문을 접수해요.',
-    ...dialogue(line('ask-rice.mp3','할머니','마실아, 집에 쌀이 다 떨어져 간다.'),line('offer-rice.mp3','마실','할머니, 지난번에 드셨던 4kg짜리 쌀 한 봉지 다시 시켜드릴까요? 배송비까지 18,900원이에요.'),line('confirm-rice.mp3','할머니','그래, 그거 하나 시키도.')) },
-  { id: 'family', place: 3, run: 64, topic: '가족에게 도착한 소식', title: ['쌀이 도착하고,','안부가 닿아요.'],
-    body: '가족 휴대폰에는 주문 상태가 보여요. 배송 후 할머니가 받았다고 답하시면 가족 카드에도 수령 확인이 도착해요.',
-    ...dialogue(line('delivered.mp3','마실','할머니, 오늘 쌀이 도착했대요. 잘 받으셨어요?'),line('voice-elder-received.mp3','할머니','응, 잘 받았다.'),line('voice-received-reply.mp3','마실','잘 받으셨다고 가족에게도 알려드렸어요.')) },
-  { id: 'family-call', place: 3, run: 68, topic: '이어지는 저녁 통화', title: ['“엄마, 그 드라마는','누가 제일 좋아?”'],
-    body: '할머니가 드라마 이야기를 전해도 좋다고 하셨어요. 저녁에 딸이 전화해, 다음에 같이 볼 이야기를 나눠요.',
-    ...dialogue(line('interest.mp3','할머니','요새 저녁마다 동백꽃 필 무렵 보는데, 참 재밌더라.'),line('voice-interest-ask.mp3','마실','요즘 보시는 드라마 이야기를 가족에게 전해드릴까요?'),line('day-share-yes.mp3','할머니','그래, 요새 그 드라마 본다고 전해도.'),line('day-daughter.mp3','딸','엄마, 그 드라마는 누가 제일 마음에 들어?'),line('day-watch-together.mp3','할머니','나는 동백이가 제일 마음에 든다. 다음에 오면 같이 보자.')) },
+  { id:'home',place:0,run:73,topic:'어르신을 위한 AI 생활 도우미',title:['말과 생활 소리를','함께 듣는 마실'],
+    body:'아침 햇살이 드는 할머니 댁이에요. 소파에서 시작한 멸치볶음 이야기가 저녁 무렵 딸의 전화로 이어져요.',
+    ...dialogue(line('day-wake.mp3','할머니','마실아, 니도 일어났나?')) },
+  { id:'morning',place:1,run:76,topic:'아침 식사를 마치고',title:['“니도','일어났나?”'],
+    body:'소파에 앉아 마실을 부르셨어요. 어제 딸이 반찬을 가져오기로 했다는 걸 마실도 기억해요.',
+    ...dialogue(line('day-morning.mp3','마실','네, 할머니. 어제 따님이 반찬 가져오신다고 했죠?'),
+      line('day-anchovy.mp3','할머니','맞다. 멸치볶음 해 왔더라. 아침에 밥이랑 묵었다.')) },
+  { id:'morning-meal',place:1,run:75,topic:'거실의 반찬 이야기',title:['“괜찮다.','딱 내 입맛이다.”'],
+    body:'할머니가 아침에 드신 건 딸의 멸치볶음이에요. 반찬 이야기를 하다 따뜻한 차 한 잔이 생각나셨어요.',
+    ...dialogue(line('day-taste.mp3','마실','이번엔 간이 좀 어떠셨어요?'),
+      line('day-just-right.mp3','할머니','괜찮다. 딱 내 입맛이다.'),
+      line('day-tea.mp3','할머니','밥도 묵었으니 차나 한 잔 해야겠다.')) },
+  { id:'morning-impact',place:1,run:68,topic:'찻잔을 찾던 순간',title:['쿵, 소리가 난 뒤','“괜찮다.”'],
+    body:'이번에는 짧은 소리 뒤에 작은 목소리가 따라와요. 마실이 할머니의 말을 기다렸다가 한 번 여쭤봐요.',
+    ...dialogue(line('day-clatter.mp3','생활 소리','가까이서 짧게 난 쿵 소리',true),
+      line('day-startle.mp3','할머니','아이고… 괜찮다.'),
+      line('day-bump.mp3','마실','할머니, 방금 쿵 소리가 났는데 어디 부딪히셨어요?')) },
+  { id:'morning-answer',place:1,run:74,topic:'할머니의 대답',title:['“뚜껑 떨어뜨렸다.','나는 멀쩡하다.”'],
+    body:'할머니가 소리의 까닭을 알려주셨어요. 가족에게 연락할 일은 없고, 둘은 다시 차 이야기로 돌아와요.',
+    ...dialogue(line('day-lid.mp3','할머니','아이다. 냄비 뚜껑 떨어뜨렸다. 나는 멀쩡하다.'),
+      line('day-water.mp3','마실','다행이에요. 물은 올려놓으셨어요?'),
+      line('day-ready.mp3','할머니','응, 이제 끓을 기다.')) },
+  { id:'kitchen',place:2,run:72,topic:'물이 끓는 부엌',title:['주전자가 먼저','대답했어요.'],
+    body:'조금 전 올려놓은 물이 끓어요. 할머니는 차를 따르다 쌀통을 슬쩍 들어 보세요.',
+    ...dialogue(line('sound-kettle.mp3','생활 소리','주전자에서 보글보글 물이 끓어요.'),
+      line('day-pour.mp3','마실','물 끓는 소리 나네요. 천천히 따르세요.'),
+      line('day-rice-bin.mp3','할머니','그래. 어이구, 쌀통이 와 이리 가볍노.')) },
+  { id:'kitchen-rice',place:2,run:92,topic:'쌀통 옆에서',title:['“마실아, 집에 쌀이','다 떨어져 간다.”'],
+    body:'늘 드시던 쌀 4kg 한 봉지예요. 할머니가 상품과 배송비를 들은 뒤 수량을 확인하면, 정해 둔 한도 안에서 모의 주문이 접수돼요.',
+    ...dialogue(line('day-order.mp3','할머니','마실아, 집에 쌀이 다 떨어져 간다.'),
+      line('day-price.mp3','마실','지난번 드신 4kg짜리 쌀 한 봉지예요. 배송비까지 18,900원인데, 같은 걸로 시켜 드릴까요?'),
+      line('day-yes.mp3','할머니','그래, 그거 하나 시키도.'),
+      line('day-ordered.mp3','마실','네, 한 봉지 주문했어요.')) },
+  { id:'family',place:3,run:73,topic:'그날 저녁 식탁',title:['쌀이 도착한','저녁이에요.'],
+    body:'아침에 주문한 쌀이 문 앞에 놓였어요. 할머니가 잘 받았다고 말씀하신 뒤 가족 화면에 수령 확인이 떠요.',
+    ...dialogue(line('day-knock.mp3','마실','할머니, 아침에 시킨 쌀이 왔대요. 문 앞에 있던가요?'),
+      line('day-supper.mp3','할머니','응, 잘 받았다. 밥 안쳐 놓고 드라마 볼라꼬.'),
+      line('day-received.mp3','마실','잘 받으셨다고 가족에게도 알려 드릴게요. 오늘은 무슨 드라마 보세요?')) },
+  { id:'family-call',place:3,run:110,topic:'딸에게서 걸려 온 전화',title:['“니만 온나.','밥은 내가 해 놓을게.”'],
+    body:'저녁 드라마 이야기를 딸에게 전해도 좋다고 하셨어요. 전화가 오자, 아침의 멸치볶음이 다시 대화에 올라요.',
+    ...dialogue(line('day-drama.mp3','할머니','동백꽃 필 무렵, 그거 볼수록 재밌데이.'),
+      line('day-share.mp3','마실','따님한테도 요즘 그 드라마 보신다고 전해 드릴까요?'),
+      line('day-together.mp3','할머니','그래. 담에 오면 내하고 같이 보자 캐라.'),
+      line('day-call.mp3','딸','엄마, 동백이 본다며? 다음 주에 멸치볶음 가져갈까?'),
+      line('day-come.mp3','할머니','멸치볶음은 됐다. 니만 온나. 밥은 내가 해 놓을게.')) },
 ];
-
-export function cueIndex(beat, seconds) {
-  let i = 0;
-  while (i + 1 < beat.cues.length && seconds >= beat.cues[i + 1].at) i++;
+export function cueIndex(beat,seconds) {
+  let i=0;
+  while(i+1<beat.cues.length && seconds>=beat.cues[i+1].at) i++;
   return i;
 }
