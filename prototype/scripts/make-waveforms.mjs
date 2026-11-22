@@ -1,4 +1,5 @@
-import { readdirSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -27,7 +28,8 @@ for (const name of readdirSync(directory).filter(name => name.endsWith('.mp3')).
     levels.push(Math.round(100 * Math.min(1, Math.max(0, (db + 60) / 54)) ** 1.55));
     start += size;
   }
-  waveforms[name] = { seconds: Number((samples / rate).toFixed(4)), levels };
+  const revision=createHash('sha256').update(readFileSync(resolve(directory,name))).digest('hex').slice(0,12);
+  waveforms[name] = { revision, seconds: Number((samples / rate).toFixed(4)), levels };
 }
 writeFileSync(resolve(root,'src/waveforms.json'), JSON.stringify(waveforms) + '\n');
 console.log('Prepared waveforms for ' + Object.keys(waveforms).length + ' recordings.');

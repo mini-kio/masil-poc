@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { seatGrandmother } from './grandmother.js';
+import { drawPad } from './padArtwork.js';
+import { HANDOFF, ROOM_GONE } from './deviceTimeline.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const shots = [
@@ -22,15 +24,9 @@ function surface(color, roughness = .82) {
 
 function getTabletTexture(shared) {
   const canvas = document.createElement('canvas');
-  canvas.width=768; canvas.height=480;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#f8f1df'; ctx.fillRect(0,0,768,480);
-  ctx.fillStyle='#294537'; ctx.font='bold 34px sans-serif'; ctx.fillText('마실 패드',44,66);
-  ctx.fillStyle='#57745e'; ctx.font='25px sans-serif'; ctx.fillText(shared?'가족에게 전한 한마디':'어르신 화면',44,155);
-  ctx.fillStyle='#263e30'; ctx.font='bold 49px serif';
-  ctx.fillText(shared?'“담에 오면 내하고':'할머니,',44,235); ctx.fillText(shared?'같이 보자 캐라.”':'듣고 있어요.',44,303);
-  ctx.fillStyle='#506456'; ctx.font='25px sans-serif'; ctx.fillText(shared?'할머니가 허락하신 드라마 이야기':'마실과 나누는 대화',44,399);
   const texture = new THREE.CanvasTexture(canvas);
+  drawPad(canvas,shared,()=>{texture.needsUpdate=true;});
+  texture.needsUpdate=true;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
@@ -244,6 +240,7 @@ export function mountRoom(host, options = {}) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.36;
   host.append(renderer.domElement);
+  const portal=options.portal.current;
 
   const scene = new THREE.Scene();
   const sky = new THREE.HemisphereLight('#fff3d8', '#81725f', 1.95);
@@ -300,6 +297,7 @@ export function mountRoom(host, options = {}) {
     last = now;
     const ease = motion.matches ? 1 : 1 - Math.exp(-10 * dt);
     progress += (goal - progress) * ease;
+    if (portal.progress>=HANDOFF) progress=goal;
     const phase = motion.matches ? Math.round(progress) : progress;
     const index = Math.min(shots.length - 2, Math.floor(phase));
     const a = shots[index], b = shots[index + 1];
@@ -308,13 +306,17 @@ export function mountRoom(host, options = {}) {
     else pointer.lerp(aimPointer, ease);
     look.lerpVectors(a.aim, b.aim, blend);
     const arc = Math.sin(Math.PI * blend);
-    const yaw = mix(a.yaw,b.yaw,blend) + arc * .17 + pointer.x * .105;
-    const angle = mix(a.elevation,b.elevation,blend) + arc * .055 - pointer.y * .046;
+    const parallax=1-THREE.MathUtils.smoothstep(phase,8,9.6);
+    const yaw=mix(a.yaw,b.yaw,blend)+arc*.17+pointer.x*.105*parallax;
+    const angle=mix(a.elevation,b.elevation,blend)+arc*.055-pointer.y*.046*parallax;
     const flat = 15 * Math.cos(angle);
     camera.position.set(look.x + Math.sin(yaw)*flat, look.y + 15*Math.sin(angle), look.z+Math.cos(yaw)*flat);
     camera.lookAt(look);
-    const portraitZoom = host.clientWidth < 520 ? 1 + .18 * Math.min(1,phase) : 1;
-    camera.zoom = (mix(a.zoom,b.zoom,blend) - arc * .15) * portraitZoom;
+    const portraitZoom=host.clientWidth<520 ? 1+.18*Math.min(1,phase)*parallax : 1;
+    // Fill the camera with the same pad on tall and wide devices, keeping its corners inside the frame.
+    const fittedZoom=Math.min(.90*(camera.right-camera.left)/.98,.89*(camera.top-camera.bottom)/.635);
+    const endZoom=index===shots.length-2 ? fittedZoom : b.zoom;
+    camera.zoom=(mix(a.zoom,endZoom,blend)-arc*.15)*portraitZoom;
     camera.updateProjectionMatrix();
     sky.color.lerpColors(a.sky,b.sky,blend);
     light.color.lerpColors(a.sun,b.sun,blend);
@@ -354,6 +356,13 @@ export function mountRoom(host, options = {}) {
     const actor = options.actor.current;
     props.phoneDisplay.map=props.screens[actor.onCall || options.portal?.current.progress>0 ? 1 : 0];
     props.grandma.update(phase,time,motion.matches,actor);
+    // Switch owners in this render tick; the browser never composites two tablet bodies or two inscriptions.
+    const meshOwnsPad=portal.progress<HANDOFF;
+    if(props.pad.visible!==meshOwnsPad) renderer.shadowMap.needsUpdate=true;
+    props.pad.visible=meshOwnsPad;
+    portal.webgl=true;
+    portal.owner=props.pad.visible?'room':'screen';
+    host.dataset.tablet=portal.owner;
     renderer.render(scene, camera);
     const bubble = options.bubble.current;
     if (bubble && !bubble.hidden) {
@@ -378,7 +387,7 @@ export function mountRoom(host, options = {}) {
       bubble.style.transform = 'translate('+Math.round(left)+'px,'+Math.round(top)+'px)';
       bubble.style.setProperty('--beak',clamp(x-left,18,bw-18).toFixed(1)+'px');
     }
-    if (options.portal?.current.progress > 0 && options.portal.current.progress < .52) {
+    if (portal.progress>0 && (portal.progress<.48 || !portal.source)) {
       const rect=host.getBoundingClientRect();
       const matrix=new DOMMatrixReadOnly(getComputedStyle(host).transform==='none'?undefined:getComputedStyle(host).transform);
       const centerX=rect.left+rect.width/2, centerY=rect.top+rect.height/2;
@@ -389,10 +398,9 @@ export function mountRoom(host, options = {}) {
         const x=centerX+matrix.a*dx+matrix.c*dy, y=centerY+matrix.b*dx+matrix.d*dy;
         l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);
       }
-      const portal=options.portal.current;
       portal.source={x:(l+r)/2,y:(t+b)/2,w:r-l,h:b-t};
-      portal.paint();
     }
+    if(portal.progress>0) portal.paint();
     if (phase < .9 && options.pins) {
       pinPositions.forEach((world, i) => {
         const el = options.pins[i];
@@ -402,7 +410,7 @@ export function mountRoom(host, options = {}) {
         el.style.top = (.5 - projected.y*.5)*100+'%';
       });
     }
-    if (!motion.matches && (options.portal.current.progress < .52 || Math.abs(goal-progress)>.002)) wake();
+    if (!motion.matches && (portal.progress<ROOM_GONE || Math.abs(goal-progress)>.002)) wake();
   }
 
   function wake() {
@@ -443,7 +451,7 @@ export function mountRoom(host, options = {}) {
   };
   const onLeave = () => { aimPointer.set(0,0); wake(); };
   const onPage = () => { last=0; if (!document.hidden) wake(); };
-  const contextLost = event => { event.preventDefault(); lost=true; options.onLost?.(); };
+  const contextLost = event => { event.preventDefault(); lost=true; portal.webgl=false; portal.paint(); options.onLost?.(); };
   const contextRestored = () => { lost=false; shadowPhase=-1; options.onRestored?.(); resize(); };
   host.addEventListener('pointermove',onPointer,{passive:true});
   host.addEventListener('pointerleave',onLeave);
@@ -462,6 +470,7 @@ export function mountRoom(host, options = {}) {
     impact(value) { impact = value; wake(); },
     dispose() {
       visible = false;
+      portal.webgl=false;
       cancelAnimationFrame(frame);
       visibility.disconnect();
       resizeObserver.disconnect();

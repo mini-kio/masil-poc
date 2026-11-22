@@ -71,7 +71,9 @@ export function useVoice() {
         if (active() && localStart > 0) audio.currentTime = Math.min(localStart, Math.max(0, audio.duration - .04));
       };
       activeFile.current = files[index];
-      audio.src = import.meta.env.BASE_URL + files[index];
+      const file=files[index];
+      const revision=recordings[file]?.revision;
+      audio.src=import.meta.env.BASE_URL+file+(revision?'?v='+revision:'');
       audio.play().catch(fail);
     }
     loadPart(start - accumulated);

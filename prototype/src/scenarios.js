@@ -32,7 +32,7 @@ export const scenarios = {
       choices: [action('반찬 이야기 전해 주세요', 'dishSent'), action('쿵 소리 뒤 대화 듣기', 'impact')],
     },
     dishSent: {
-      lines: [masil('다음에도 이 반찬을 가져다달라고 전할게요.')],
+      lines: [masil('다음에도 이 반찬을 가져다달라고 전할게요.', 'answer-compare-dishsent-masil.mp3')],
       clue: '할머니가 반찬 이야기를 전해 달라고 함', decision: '부탁하신 한 가지를 가족에게 전해요.',
       family: { label: '공유한 소식', text: '어머니가 다음에도 이 반찬을 드시고 싶다고 하셨어요.' },
     },
@@ -42,17 +42,17 @@ export const scenarios = {
       choices: [action('냄비 뚜껑이었어요', 'lid'), action('TV에서 난 소리예요', 'tv'), action('딸에게 연락해 줘', 'help'), action('응답 없이 시간 넘기기', 'recheck')],
     },
     lid: {
-      lines: [elder('냄비 뚜껑 떨어뜨렸다. 내는 괜찮다.', 'elder-lid.mp3'), masil('아, 뚜껑 소리였군요. 반찬 이야기 계속할까요?')],
+      lines: [elder('냄비 뚜껑 떨어뜨렸다. 내는 괜찮다.', 'elder-lid.mp3'), masil('아, 뚜껑 소리였군요. 반찬 이야기 계속할까요?', 'answer-compare-lid-masil.mp3')],
       clue: '뚜껑을 떨어뜨렸다는 본인 설명', decision: '평소 대화로 돌아가요.',
       choices: [action('다른 답변으로 비교하기', 'check')],
     },
     tv: {
-      lines: [elder('TV에서 난 소리다.'), masil('아, TV 소리였군요. 말씀 계속해 주세요.')],
+      lines: [elder('TV에서 난 소리다.', 'answer-compare-tv-elder.mp3'), masil('아, TV 소리였군요. 말씀 계속해 주세요.', 'answer-compare-tv-masil.mp3')],
       clue: 'TV에서 났다는 본인 설명', decision: '평소 대화로 돌아가요.',
       choices: [action('다른 답변으로 비교하기', 'check')],
     },
     help: {
-      lines: [elder('내가 넘어졌다. 딸한테 전화 좀 해도.', 'elder-help.mp3'), masil('따님께 지금 연락할게요.')],
+      lines: [elder('내가 넘어졌다. 딸한테 전화 좀 해도.', 'elder-help.mp3'), masil('따님께 지금 연락할게요.', 'answer-compare-help-masil.mp3')],
       clue: '본인이 넘어졌다고 말하고 통화를 요청함', decision: '본인 말씀과 연락 요청을 지정한 딸에게 전해요.',
       family: { label: '통화 요청', text: '어머니가 넘어졌다고 말씀하시고 통화를 요청하셨어요.', urgent: true, call: true },
     },
@@ -71,7 +71,7 @@ export const scenarios = {
     label: '주전자와 타이머',
     goal: '이전에 하신 말씀과 생활 소리가 이어질 때 마실이 어떻게 반응하는지 봐요.',
     start: {
-      lines: [elder('이따 차 한 잔 해야겠다.')], clue: '잠시 뒤 차를 끓이겠다는 이전 대화', decision: '이어지는 소리의 맥락으로 살펴봐요.',
+      lines: [elder('이따 차 한 잔 해야겠다.', 'answer-kettle-start-elder.mp3')], clue: '잠시 뒤 차를 끓이겠다는 이전 대화', decision: '이어지는 소리의 맥락으로 살펴봐요.',
       choices: [action('끓는 소리 예시 듣기', 'heard'), action('앞선 대화 없이 들어보기', 'quiet')],
     },
     heard: {
@@ -80,16 +80,16 @@ export const scenarios = {
       choices: [action('3분 뒤에 알려줘', 'timer'), action('지금 주전자 앞이야', 'wait'), action('TV에서 나는 소리야', 'tv')],
     },
     timer: {
-      lines: [elder('삼 분 뒤에 알려도.'), masil('네, 삼 분 뒤에 알려드릴게요.')],
+      lines: [elder('삼 분 뒤에 알려도.', 'answer-kettle-timer-elder.mp3'), masil('네, 삼 분 뒤에 알려드릴게요.', 'answer-kettle-timer-masil.mp3')],
       clue: '어르신이 직접 3분을 요청함', decision: '3분 타이머를 시연 화면에 설정해요.',
       choices: [action('3분 후 알림 보기', 'timerDone')],
     },
     timerDone: {
-      lines: [masil('할머니, 아까 부탁하신 3분이 지났어요.')], clue: '어르신이 요청한 시간에 도달함', decision: '어르신 화면에서 알려드려요.',
+      lines: [masil('할머니, 아까 부탁하신 3분이 지났어요.', 'answer-kettle-timerdone-masil.mp3')], clue: '어르신이 요청한 시간에 도달함', decision: '어르신 화면에서 알려드려요.',
       choices: [action('대화로 돌아가기', 'start')],
     },
     wait: {
-      lines: [elder('내 지금 주전자 앞이다.'), masil('네, 잠깐 기다릴게요.')], clue: '이미 주전자 앞에 있다는 설명', decision: '어르신이 다시 말을 걸 때까지 기다려요.',
+      lines: [elder('내 지금 주전자 앞이다.', 'answer-kettle-wait-elder.mp3'), masil('네, 잠깐 기다릴게요.', 'answer-kettle-wait-masil.mp3')], clue: '이미 주전자 앞에 있다는 설명', decision: '어르신이 다시 말을 걸 때까지 기다려요.',
       choices: [action('이야기 계속하기', 'start')],
     },
     quiet: {
@@ -97,7 +97,7 @@ export const scenarios = {
       choices: [action('차를 끓이는 예시 보기', 'heard')],
     },
     tv: {
-      lines: [elder('TV에서 나는 기다.'), masil('아, TV 소리였군요. 말씀 계속해 주세요.')],
+      lines: [elder('TV에서 나는 기다.', 'answer-kettle-tv-elder.mp3'), masil('아, TV 소리였군요. 말씀 계속해 주세요.', 'answer-compare-tv-masil.mp3')],
       clue: '어르신이 TV 소리라고 설명함', decision: '이야기를 이어가요.',
       choices: [action('차를 끓이는 예시 보기', 'heard')],
     },
@@ -119,18 +119,18 @@ export const scenarios = {
       choices: [action('가족에게 전해 주세요', 'share'), action('오늘은 대화만 할래요', 'private')],
     },
     share: {
-      lines: [masil('말씀하신 내용만 가족에게 전할게요.')], clue: '본인 말씀과 공유 허락', decision: '동의한 한 문장을 그대로 전해요.',
+      lines: [masil('말씀하신 내용만 가족에게 전할게요.', 'answer-checkin-share-masil.mp3')], clue: '본인 말씀과 공유 허락', decision: '동의한 한 문장을 그대로 전해요.',
       family: { label: '공유한 안부', text: '어머니가 “요즘 무릎이 좀 아프다”고 말씀하셨어요.', call: true },
     },
     private: {
-      lines: [masil('네, 이 자리에서 이야기 더 나눠요.')], clue: '어르신이 대화만 원하심', decision: '할머니와 대화를 이어가요.',
+      lines: [masil('네, 이 자리에서 이야기 더 나눠요.', 'answer-checkin-private-masil.mp3')], clue: '어르신이 대화만 원하심', decision: '할머니와 대화를 이어가요.',
     },
   },
   order: {
     label: '생필품 주문',
     goal: '쌀이 떨어져 간다는 말에서 시작해 직접 주문하거나 가족에게 부탁해 보세요.',
     start: {
-      lines: [elder('마실아, 집에 쌀이 다 떨어져 간다.', 'ask-rice.mp3'), masil(orderPrompt)],
+      lines: [elder('마실아, 집에 쌀이 다 떨어져 간다.', 'ask-rice.mp3'), masil(orderPrompt, 'answer-order-start-masil.mp3')],
       clue: '쌀이 부족하다는 말 · 지난번 쌀 4kg 주문', decision: '어르신에게 주문과 전달 중 원하는 방식을 여쭤봐요.',
       choices: [action('지난번 쌀로 주문 알아보기', 'quote'), action('아들에게 말만 전하기', 'tell'), action('오늘은 주문 안 할래요', 'cancel')],
     },
@@ -160,17 +160,17 @@ export const scenarios = {
       family: { label: '주문 완료', text: rice.two, actions: [action('도착한 상황 보기', 'arrived'), action('배송 전 취소', 'cancel')] },
     },
     tell: {
-      lines: [masil('아드님께 쌀이 얼마 안 남았다고 전해드릴까요?')],
+      lines: [masil('아드님께 쌀이 얼마 안 남았다고 전해드릴까요?', 'answer-order-tell-masil.mp3')],
       clue: '이번에는 가족이 직접 사고 싶다는 요청', decision: '아들에게 전할 문장을 먼저 여쭤봐요.',
       choices: [action('아들에게만 전해 줘요', 'request'), action('말 안 해도 돼요', 'cancel')],
     },
     request: {
-      lines: [masil('쌀이 얼마 안 남았다는 말씀을 아드님께 전했어요.')],
+      lines: [masil('쌀이 얼마 안 남았다는 말씀을 아드님께 전했어요.', 'answer-order-request-masil.mp3')],
       clue: '아들에게 부족하다는 말만 전해 달라는 확인', decision: '가족 화면에 부탁을 남겨요.',
       family: { label: '부탁이 왔어요', text: '어머니가 쌀이 얼마 안 남았다고 하셨어요.', actions: [action('직접 사서 보냈다고 표시', 'sent')] },
     },
     sent: {
-      lines: [masil('아드님이 쌀을 보내셨대요.')], clue: '아들이 직접 구매하고 발송했다고 표시함', decision: '가족이 남긴 진행 상태를 보여줘요.',
+      lines: [masil('아드님이 쌀을 보내셨대요.', 'answer-order-sent-masil.mp3')], clue: '아들이 직접 구매하고 발송했다고 표시함', decision: '가족이 남긴 진행 상태를 보여줘요.',
       family: { label: '가족이 보냈어요', text: '아들이 쌀을 사서 보냈다고 표시했어요.', actions: [action('도착한 상황 보기', 'arrived')] },
     },
     arrived: {
@@ -184,7 +184,7 @@ export const scenarios = {
       family: { label: '수령 확인', text: '어머니가 쌀을 잘 받으셨다고 답하셨어요.' },
     },
     missing: {
-      lines: [elder('아직 못 받았다.'), masil('가족에게 아직 받지 못하셨다고 전할게요.')],
+      lines: [elder('아직 못 받았다.', 'answer-order-missing-elder.mp3'), masil('가족에게 아직 받지 못하셨다고 전할게요.', 'answer-order-missing-masil.mp3')],
       clue: '배송 완료 표시와 어르신 답변이 다름', decision: '가족이 배송 상태를 확인할 수 있도록 표시해요.',
       family: { label: '배송 확인 요청', text: '배송 완료로 표시됐지만 어머니는 아직 받지 못하셨다고 말씀하셨어요.' },
     },
@@ -218,7 +218,7 @@ export const scenarios = {
       family: { label: '가족 통화 예시', text: '딸이 다음 방문에 드라마를 같이 보기로 했어요.' },
     },
     saved: {
-      lines: [masil('할머니가 요즘 보시는 드라마를 할머니의 기억에만 남겼어요.')],
+      lines: [masil('할머니가 요즘 보시는 드라마를 할머니의 기억에만 남겼어요.', 'answer-interest-saved-masil.mp3')],
       clue: '어르신만 볼 수 있는 저장을 선택함', decision: '이 기억은 다음에 할머니와 대화할 때 활용해요.',
       choices: [action('기억 지우기', 'private')],
     },
@@ -227,12 +227,12 @@ export const scenarios = {
       clue: '어르신이 공유를 원하지 않으심', decision: '그 자리에서 대화를 계속해요.',
     },
     call: {
-      lines: [elder('오늘은 딸 목소리가 좀 듣고 싶네.'), masil('따님께 지금 통화하고 싶다고 전해드릴까요?')],
+      lines: [elder('오늘은 딸 목소리가 좀 듣고 싶네.', 'answer-interest-call-elder.mp3'), masil('따님께 지금 통화하고 싶다고 전해드릴까요?', 'answer-interest-call-masil.mp3')],
       clue: '통화하고 싶다는 본인 말씀', decision: '연락을 원하시는지 확인해요.',
       choices: [action('지금 통화하고 싶다고 전해요', 'called'), action('조금 이따 이야기해요', 'private')],
     },
     called: {
-      lines: [masil('따님에게 통화하고 싶다고 전했어요.')], clue: '어르신이 통화 요청 전달을 허락함', decision: '가족 화면에 통화 요청을 전해요.',
+      lines: [masil('따님에게 통화하고 싶다고 전했어요.', 'answer-interest-called-masil.mp3')], clue: '어르신이 통화 요청 전달을 허락함', decision: '가족 화면에 통화 요청을 전해요.',
       family: { label: '통화 요청', text: '어머니가 딸 목소리를 듣고 싶다고 하셨어요.', call: true },
     },
   },
@@ -244,7 +244,7 @@ export const scenarios = {
       family: { label: '다음 안부에 물어보기', text: '오늘 점심은 잘 드셨는지 여쭤봐 줘.', actions: [action('가족 질문 남기기', 'queued')] },
     },
     queued: {
-      lines: [masil('다음 안부에 점심을 잘 드셨는지 여쭤볼게요.')], clue: '가족 질문이 저장됨', decision: '다음 대화 차례를 기다려요.',
+      lines: [masil('다음 안부에 점심을 잘 드셨는지 여쭤볼게요.', 'answer-calendar-queued-masil.mp3')], clue: '가족 질문이 저장됨', decision: '다음 대화 차례를 기다려요.',
       family: { label: '안부 질문을 남겼어요', text: '다음 대화에서 점심을 잘 드셨는지 여쭤볼 예정이에요.' },
       choices: [action('다음 대화 듣기', 'ask')],
     },
@@ -259,7 +259,7 @@ export const scenarios = {
       family: { label: '가족 일정', text: '금요일 오후 2시 · 동네 모임' },
     },
     private: {
-      lines: [masil('금요일 오후 두 시, 할머니 일정에만 적어둘게요.')],
+      lines: [masil('금요일 오후 두 시, 할머니 일정에만 적어둘게요.', 'answer-calendar-private-masil.mp3')],
       clue: '어르신이 자신만 볼 일정을 원하심', decision: '어르신 달력에 표시해요.',
     },
   },

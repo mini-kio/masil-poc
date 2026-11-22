@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { combinePeaks, useVoice } from './AudioDeck.jsx';
-import { cueIndex, day, places } from './day.js';
-import Devices, { easeBetween, paintDevices } from './Devices.jsx';
+import { day, places } from './day.js';
+import useStoryScroll from './useStoryScroll.js';
+import { nextNarratedBeat } from './storyPacing.js';
+import Devices, { paintDevices } from './Devices.jsx';
 
 const asset = name => import.meta.env.BASE_URL + name;
 const compactQuery = '(prefers-reduced-motion: reduce), (max-height: 600px), (max-width: 350px) and (max-height: 715px)';
-const bound = v => Math.max(0, Math.min(1, v));
-const roomStarts = places.map((_, i) => day.findIndex(beat => beat.place === i));
 
 const voices = {'할머니':'elder','마실':'masil','딸':'family','생활 소리':'sound'};
 
@@ -73,158 +73,109 @@ function RoomWorld({ controller, position, actor, reading, dialogueBeat, cue, li
 }
 
 export default function Story() {
-  const root = useRef(null);
-  const stage = useRef(null);
-  const controller = useRef(null);
-  const position = useRef(0);
-  const actor = useRef({});
-  const layer=useRef(null), portal=useRef({progress:0,source:null,paint:null});
-  portal.current.paint=()=>paintDevices(layer.current,portal.current.progress,portal.current.source);
-  const lastPlayed=useRef(-1), desired=useRef(-1), guided=useRef(false);
+  const root=useRef(null),stage=useRef(null),controller=useRef(null),position=useRef(0),actor=useRef({});
+  const layer=useRef(null),portal=useRef({progress:0,source:null,webgl:false,owner:'room',paint:null});
+  portal.current.paint=()=>paintDevices(layer.current,portal.current);
+  const controls=useRef({goal:{index:0,cue:0,bridge:false},seeking:false,guided:false,autoUntil:0,skipBridge:false,snapCaption:false});
+  const narrator=useRef({});
+  const played=useRef(-1),done=useRef(false),resume=useRef(null);
   const [spoken,setSpoken]=useState(-1);
-  const [reading, setReading] = useState({index:0,cue:0});
-  const [linear, setLinear] = useState(() => matchMedia(compactQuery).matches);
-  const [soundOn, setSoundOn] = useState(false);
-  const [onScreen, setOnScreen] = useState(true);
-  const voice = useVoice();
-  const beat = day[reading.index];
-  const place = places[beat.place];
-  const useAudioTime=soundOn && onScreen && !voice.error && spoken>=0 && !reading.bridge;
-  const dialogueBeat=useAudioTime ? day[spoken] : beat;
-  const cue=useAudioTime ? cueIndex(dialogueBeat,voice.elapsed) : reading.cue;
-  desired.current=soundOn && onScreen && !reading.bridge ? reading.index : -1;
+  const [linear,setLinear]=useState(()=>matchMedia(compactQuery).matches);
+  const [soundOn,setSoundOn]=useState(false),[onScreen,setOnScreen]=useState(true);
+  const voice=useVoice();
+  const useAudioTime=soundOn && onScreen && !voice.error && spoken>=0;
+  narrator.current={index:spoken,elapsed:voice.elapsed,active:useAudioTime,finished:done.current};
+  const reading=useStoryScroll({root,stage,controller,position,portal,controls,narrator,linear});
+  const beat=day[reading.index],cue=reading.cue,place=places[beat.place];
+  actor.current={line:beat.id+'-'+cue,speaker:beat.cues[cue].speaker,place:beat.place,
+    audio:useAudioTime && voice.playing,level:voice.level,onCall:beat.id==='family-call' && cue>=3};
 
-  actor.current={line:dialogueBeat.id+'-'+cue,speaker:dialogueBeat.cues[cue].speaker,place:dialogueBeat.place,
-    audio:useAudioTime && voice.playing,level:voice.level,onCall:dialogueBeat.id==='family-call' && cue>=3};
-
-  useEffect(() => {
-    const media = matchMedia(compactQuery);
-    const change = () => setLinear(media.matches);
-    media.addEventListener('change', change);
-    return () => media.removeEventListener('change', change);
-  }, []);
-  useEffect(() => {
-    const element = root.current;
-    let visible = true;
-    const sync = () => {
-      if (!visible || document.hidden) guided.current=false;
-      setOnScreen(visible && !document.hidden);
-    };
-    const observer = new IntersectionObserver(([entry]) => { visible=entry.isIntersecting; sync(); });
-    observer.observe(element);
-    document.addEventListener('visibilitychange', sync);
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); };
-  }, []);
   useEffect(()=>{
-    // A manual gesture takes over from the listening tour without muting the scene.
-    const handBack=()=>{guided.current=false;};
-    const key=e=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) handBack();};
-    const link=e=>{if(e.target.closest('a[href^="#"]:not(.scroll-invite)')) handBack();};
-    window.addEventListener('wheel',handBack,{passive:true});
-    window.addEventListener('touchmove',handBack,{passive:true});
-    document.addEventListener('keydown',key);
-    document.addEventListener('click',link);
-    return ()=>{window.removeEventListener('wheel',handBack);window.removeEventListener('touchmove',handBack);document.removeEventListener('keydown',key);document.removeEventListener('click',link);};
+    const media=matchMedia(compactQuery),change=()=>setLinear(media.matches);
+    media.addEventListener('change',change);return ()=>media.removeEventListener('change',change);
   },[]);
-  const startBeat=useCallback(function playBeat(index) {
-    lastPlayed.current=index;
-    setSpoken(index);
-    voice.play(day[index].files,0,lastLine=>{
-      const next=desired.current;
-      if (next===index) {
-        if (guided.current && lastLine) {
-          const target=document.getElementById(day[index+1]?.id ?? 'roadmap');
-          if (index===day.length-1) guided.current=false;
-          target?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-        }
-        return false;
-      }
-      if (next>=0) playBeat(next);
-      else { lastPlayed.current=-1; setSpoken(-1); voice.stop(); }
-      return true;
-    });
-  },[voice.play,voice.stop]);
   useEffect(()=>{
-    const next=desired.current;
-    if (lastPlayed.current===next) return;
-    if (next<0) { lastPlayed.current=-1; setSpoken(-1); voice.stop(); return; }
-    // On a normal forward scroll, finish the current sentence before entering the next room.
-    if (voice.playing && next===lastPlayed.current+1 && lastPlayed.current>=0) return;
-    const timer=setTimeout(()=>startBeat(next),120);
-    return ()=>clearTimeout(timer);
-  },[reading.index,reading.bridge,soundOn,onScreen,voice.playing,voice.stop,startBeat]);
-  useEffect(() => { controller.current?.listening(voice.playing); }, [voice.playing]);
-  const impact = Boolean(dialogueBeat.cues[cue]?.impact);
-  useEffect(() => { controller.current?.impact(impact); }, [impact]);
+    let inView=true;
+    const sync=()=>{ const active=inView&&!document.hidden; if(!active) controls.current.guided=false; setOnScreen(active); };
+    const observer=new IntersectionObserver(([entry])=>{inView=entry.isIntersecting;sync();});
+    observer.observe(root.current); document.addEventListener('visibilitychange',sync);
+    return ()=>{observer.disconnect();document.removeEventListener('visibilitychange',sync);};
+  },[]);
+
+  const startBeat=useCallback(function playBeat(index,from=0) {
+    const ctl=controls.current;
+    played.current=index;done.current=false;resume.current=null;setSpoken(index);
+    voice.play(day[index].files,from,lastLine=>{
+      if(!lastLine) return false;
+      done.current=true;
+      ctl.request?.();
+      if(ctl.seeking) return false;
+      const next=nextNarratedBeat(index,ctl.goal.index);
+      if(next!==index) { playBeat(next); return true; }
+      if(ctl.guided) {
+        ctl.autoUntil=performance.now()+1400;
+        if(index===day.length-1) ctl.guided=false;
+        document.getElementById(day[index+1]?.id??'roadmap')?.scrollIntoView({
+          behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'
+        });
+      }
+      return false;
+    });
+  },[voice.play]);
+
+  controls.current.onSeek=goal=>{
+    if(!soundOn || !onScreen) return;
+    if(goal.bridge) {
+      played.current=-1;done.current=false;resume.current=null;setSpoken(-1);voice.stop();
+    } else startBeat(goal.index,day[goal.index].cues[goal.cue].at);
+  };
+  useEffect(()=>{
+    const ctl=controls.current;
+    if(!soundOn||!onScreen) {
+      if(played.current>=0) {
+        if(soundOn&&!onScreen&&!done.current) resume.current={index:played.current,elapsed:voice.elapsed};
+        if(!soundOn) resume.current=null;
+        played.current=-1;done.current=false;setSpoken(-1);voice.stop();
+      }
+      return;
+    }
+    if(ctl.seeking||voice.error||ctl.skipBridge&&reading.atPortal) return;
+    const target=ctl.goal.index;
+    if(played.current<0) {
+      if(ctl.goal.bridge && !resume.current) return;
+      const saved=resume.current;
+      startBeat(saved?.index??target,saved?.elapsed??0);
+    } else if(done.current && played.current!==target) {
+      startBeat(nextNarratedBeat(played.current,target));
+    }
+  },[soundOn,onScreen,reading.target,reading.atPortal,voice.playing,voice.error,voice.elapsed,voice.stop,startBeat]);
+  useEffect(()=>{controls.current.request?.();},[useAudioTime,spoken,voice.elapsed,voice.playing,voice.error]);
+  useEffect(()=>{controller.current?.listening(useAudioTime&&voice.playing);},[useAudioTime,voice.playing]);
+  const impact=Boolean(beat.cues[cue].impact);
+  useEffect(()=>{controller.current?.impact(impact);},[impact]);
 
   function toggleSound() {
-    if (soundOn && !voice.error) {
-      guided.current=false; desired.current=-1;
-      setSoundOn(false);
-      voice.stop();
+    const ctl=controls.current;
+    if(soundOn&&!voice.error) {
+      ctl.guided=false;ctl.snapCaption=true;resume.current=null;
+      setSoundOn(false);voice.stop();
     } else {
-      setSoundOn(true);
-      desired.current=reading.index;
-      startBeat(reading.index);
+      ctl.cancelSeek?.();ctl.skipBridge=false;setSoundOn(true);startBeat(reading.index);
     }
+    ctl.request?.();
   }
-
-  useEffect(() => {
-    const stops = [...root.current.querySelectorAll(linear ? '.story-caption, .devices-linear' : '.chapter-stop')];
-    let frame = 0;
-    function read() {
-      frame = 0;
-      const header = document.querySelector('.masthead').offsetHeight;
-      const line = header + (linear ? Math.min(185, innerHeight * .26) : 3);
-      const tops = stops.map(node => node.getBoundingClientRect().top);
-      let i = 0;
-      while (i + 1 < tops.length && tops[i + 1] <= line) i++;
-      const length = i + 1 < stops.length ? tops[i+1]-tops[i]
-        : stops[i].offsetHeight - (linear ? 0 : stage.current.offsetHeight);
-      const fraction = bound((line-tops[i]) / Math.max(1,length));
-      const bridge=i===day.length;
-      const active=Math.min(day.length-1,i);
-      const travel=fraction<.67?.14*fraction/.67:.14+.86*(fraction-.67)/.33;
-      const progress=linear ? 0 : bridge ? .105+.895*fraction : active===day.length-1 ? .105*easeBetween(fraction,.91,1) : 0;
-      portal.current.progress=progress;
-      if (!progress) portal.current.source=null;
-      portal.current.paint();
-      position.current=progress ? 8+2*easeBetween(progress,0,.52) : Math.min(day.length-1,active+travel);
-      controller.current?.setProgress(position.current);
-      stage.current.dataset.transition=String(progress>0);
-      stage.current.style.setProperty('--story-out',1-easeBetween(progress,0,.10));
-      stage.current.style.setProperty('--room-out',1-easeBetween(progress,.28,.51));
-      const group=day[active].place;
-      const groupLength=(roomStarts[group+1]??day.length)-roomStarts[group];
-      stage.current.style.setProperty('--journey',(group+(active-roomStarts[group]+fraction)/groupLength)/places.length);
-      const nextCue=cueIndex(day[active],(bridge?1:fraction)*day[active].seconds);
-      const wakeShown=active===0 && fraction>.28;
-      setReading(previous=>previous.index===active && previous.cue===nextCue && previous.bridge===bridge && previous.wakeShown===wakeShown ? previous : {index:active,cue:nextCue,bridge,wakeShown});
-    }
-    function schedule() { if (!frame) frame=requestAnimationFrame(read); }
-    read();
-    window.addEventListener('scroll',schedule,{passive:true});
-    window.addEventListener('resize',schedule,{passive:true});
-    window.addEventListener('pageshow',schedule);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('scroll',schedule);
-      window.removeEventListener('resize',schedule);
-      window.removeEventListener('pageshow',schedule);
-    };
-  }, [linear]);
 
   return <section className={'reel' + (linear ? ' linear-story' : '')} ref={root} aria-label="할머니 댁의 하루">
     {!linear && <div className="chapter-track" aria-hidden="true">
-      {day.map(b => <div id={b.id} key={b.id} className="chapter-stop" style={{'--run': b.run+'svh'}}>
+      {day.map(b => <div id={b.id} key={b.id} className="chapter-stop" style={{'--run': Math.max(b.run,b.cues.length*27)+'svh'}}>
         {b.id === 'morning-meal' && <span id="experience" className="story-alias" />}
       </div>)}
       <div className="chapter-stop device-stop" id="roadmap" />
     </div>}
-    <div className="reel-stage" ref={stage} data-chapter={place.id} data-beat={beat.id}>
+    <div className="reel-stage" ref={stage} data-chapter={place.id} data-beat={beat.id} data-narration={useAudioTime ? "speaking" : "scroll"}>
       <div className="reel-atmosphere" aria-hidden="true"><div/><div/></div>
       <div className="wrap reel-layout">
-        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} dialogueBeat={dialogueBeat} cue={cue} linear={linear} portal={portal}/>
+        <RoomWorld controller={controller} position={position} actor={actor} reading={reading} dialogueBeat={beat} cue={cue} linear={linear} portal={portal}/>
         {day.map((b,i) => {
           const Heading=i===0?'h1':'h2';
           return <article className="story-caption" key={b.id} id={linear ? b.id : undefined}
@@ -235,7 +186,8 @@ export default function Story() {
             <p className="scene-description">{b.body}</p>
             {!i && <a className="scroll-invite" href="#morning" onClick={event=>{
               event.preventDefault();
-              guided.current=true; desired.current=0; setSoundOn(true); startBeat(0);
+              controls.current.cancelSeek?.();controls.current.guided=true; controls.current.skipBridge=false;
+              setSoundOn(true); startBeat(0);
             }}><i aria-hidden="true"/>소리와 함께 하루 따라가기</a>}
             {linear && <div className="plain-cues">
               {b.cues.map((c,j)=><p key={j}><b>{c.speaker}</b>{c.text}</p>)}
